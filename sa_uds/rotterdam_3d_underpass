@@ -1,0 +1,248 @@
+import json
+import numpy as np
+import shapely
+from shapely import wkt
+
+# step 1) create lists of roofs and grounds per city objects
+def roof_boundaries(input_data):
+    cityobjs = list(input_data['CityObjects'].keys())
+
+    obj_roofs = {}
+    roof_bounds = {}
+
+    for i in cityobjs:
+        if len(input_data['CityObjects'][i]['geometry']) == 0:
+            continue
+        else:
+            type = input_data['CityObjects'][i]['geometry'][0]['type']
+            boundaries = input_data['CityObjects'][i]['geometry'][0]['boundaries']
+            smt_values = input_data['CityObjects'][i]['geometry'][0]['semantics']['values']
+            smt_surfaces = input_data['CityObjects'][i]['geometry'][0]['semantics']['surfaces']
+
+            roof_id = {}
+            for id, surf in enumerate(smt_surfaces):
+                if surf['type'] == 'RoofSurface':
+                    roof_id[id] = surf['id']
+
+            obj_roofs[i] = list(roof_id.values())
+
+            roof_val = {}
+            for a in list(roof_id.keys()):
+                vals = []
+                if type == 'Solid':
+                    for id, val in enumerate(smt_values[0]): # 0-0 / 1-1 / 2-2 / 3-2 / 4-3
+                        if val == a:
+                            vals.append(id)
+                elif type == 'MultiSurface':
+                    for id, val in enumerate(smt_values): # 0-0 / 1-1 / 2-2 / 3-2 / 4-3
+                        if val == a:
+                            vals.append(id)
+                roof_val[roof_id[a]] = vals
+
+            for a in list(roof_val.keys()):
+                bounds = []
+                for b in roof_val[a]:
+                    if type == 'Solid':  # array depth == 4
+                        bounds.append(boundaries[0][b])
+                    elif type == 'MultiSurface' or 'CompositeSurface':  # array depth == 3
+                        bounds.append(boundaries[b])
+                    else:
+                        print(f'geometry type error : {type}')
+
+                roof_bounds[a] = bounds
+
+    return roof_bounds
+
+
+def ground_boundaries(input_data):
+    cityobjs = list(input_data['CityObjects'].keys())
+
+    obj_grounds = {}
+    ground_bounds = {}
+
+    for i in cityobjs:
+        if len(input_data['CityObjects'][i]['geometry']) == 0:
+            continue
+        else:
+            type = input_data['CityObjects'][i]['geometry'][0]['type']
+            boundaries = input_data['CityObjects'][i]['geometry'][0]['boundaries']
+            smt_values = input_data['CityObjects'][i]['geometry'][0]['semantics']['values']
+            smt_surfaces = input_data['CityObjects'][i]['geometry'][0]['semantics']['surfaces']
+
+            ground_id = {}
+            for id, surf in enumerate(smt_surfaces):
+                if surf['type'] == 'GroundSurface':
+                    ground_id[id] = surf['id']
+
+            obj_grounds[i] = list(ground_id.values())
+
+            ground_val = {}
+            for a in list(ground_id.keys()):
+                vals = []
+                if type == 'Solid':
+                    for id, val in enumerate(smt_values[0]): # 0-0 / 1-1 / 2-2 / 3-2 / 4-3
+                        if val == a:
+                            vals.append(id)
+                elif type == 'MultiSurface':
+                    for id, val in enumerate(smt_values): # 0-0 / 1-1 / 2-2 / 3-2 / 4-3
+                        if val == a:
+                            vals.append(id)
+                ground_val[ground_id[a]] = vals
+
+            for a in list(ground_val.keys()):
+                bounds = []
+                for b in ground_val[a]:
+                    if type == 'Solid':
+                        bounds.append(boundaries[0][b])
+                    elif type == 'MultiSurface':
+                        bounds.append(boundaries[b])
+                    else:
+                        print(f'geometry type error : {type}')
+
+                ground_bounds[a] = bounds
+
+    return ground_bounds
+
+# step 2) get coordinates of vertices
+def vertices_idx_to_coords(input_data):
+    scale = input_data['transform']['scale']
+    translate = input_data['transform']['translate']
+    vertices = input_data['vertices']
+
+    v_coords = {}
+    for i in range(0, len(vertices)):
+        vi = []
+        vi_x = (vertices[i][0] * scale[0]) + translate[0]
+        vi_y = (vertices[i][1] * scale[1]) + translate[1]
+        #vi_z = (vertices[i][2] * scale[2]) + translate[2]
+
+        vi.append(vi_x)
+        vi.append(vi_y)
+        #vi.append(vi_z)
+        v_coords[i] = vi
+
+    return v_coords
+
+# step 3) get coordinates of boundaries
+def boundary_idx_to_coords(input_dict, v_coords):
+    bounds_coords = {}
+
+    for uuid, bound in input_dict.items():
+        bound_coords =[]
+        for face in bound:
+            face_coords = []
+            for ring in face:
+                ring_coords =[]
+                for v in ring:
+                    ring_coords.append(tuple(v_coords[v]))
+                face_coords.append(ring_coords)
+            bound_coords.append(face_coords)
+        bounds_coords[uuid] = bound_coords
+
+    return bounds_coords
+
+def write_wkt_polygon(bounds_dict, output_f_name):
+    wkts = {}
+
+    with open(output_f_name, 'w') as output:
+        output.write('uuid; geom\n')
+
+        for uuid, bound in bounds_dict.items():
+            polygon_strs = []
+            for face in bound:
+                ring_strs = []
+                for ring in face:
+                    if ring[0] != ring[-1]:
+                        ring.append(ring[0])
+                    coords_list = []
+                    for coord in ring:
+                        coords_list.append(f'{coord[0]} {coord[1]}')
+                    coords = ', '.join(coords_list)
+                    ring_strs.append(f'({coords})')
+                face_str = f'({', '.join(ring_strs)})'
+                polygon_strs.append(face_str)
+
+            if len(polygon_strs) == 1:
+                wkt = f'POLYGON{polygon_strs[0]}'
+            else:
+                all_faces = ', '.join(polygon_strs)
+                wkt = f'MULTIPOLYGON({all_faces})'
+
+            output.write(f'{uuid}; {wkt}\n')
+            wkts[uuid] = wkt
+
+    return wkts
+
+def cal_area(roof_wkts, ground_wkts):
+    """수정! 각 roof, ground를 빌딩별로? object별로? merge 해야함!! -> calculate the area of surfaces(roof & ground) -> subtract and check differences"""
+    #row_n = len(wkts.keys())
+    #np_area = np.zeros([row_n, 3])
+    areas = {}
+
+    for uuid, wkt_str in roof_wkts.items():
+        wkt_shp = wkt.loads(wkt_str)
+        if not wkt_shp.is_valid:
+            print(wkt_str)
+            valid_poly = shapely.make_valid(wkt_shp, method='structure')
+            wkt_shp = valid_poly
+
+        roof_area = shapely.area(wkt_shp)
+        areas[uuid] = list[roof_area]
+
+    for uuid, wkt_str in ground_wkts.items():
+        wkt_shp = wkt.loads(wkt_str)
+        if not wkt_shp.is_valid:
+            print(wkt_str)
+            valid_poly = shapely.make_valid(wkt_shp, method='structure')
+            wkt_shp = valid_poly
+
+        ground_area = shapely.area(wkt_shp)
+        areas[uuid].append(ground_area)
+
+    return areas
+
+def diff_area(areas):
+    underpass_building_uuid = []
+    for uuid, area_list in areas.items():
+        diff = area_list[0] - area_list[1]  # roof - ground
+        if diff > 0:
+            underpass_building_uuid.append(uuid)
+
+    return underpass_building_uuid
+
+
+
+
+
+
+
+# main
+input_f = "/Users/moonchaeyeon/Desktop/tudelft/sa_uds/rotterdam3d/lod2_export/lod_2_export.json"
+#input_f = "/Users/moonchaeyeon/Downloads/Export/export.json"
+
+
+with open(input_f) as f:
+    data = json.load(f)
+
+v_coords = vertices_idx_to_coords(data)
+
+roof_bounds = roof_boundaries(data)
+ground_bounds = ground_boundaries(data)
+
+roof_coords = boundary_idx_to_coords(roof_bounds, v_coords)
+ground_coords = boundary_idx_to_coords(ground_bounds, v_coords)
+
+ground_output_f = '/Users/moonchaeyeon/Desktop/tudelft/sa_uds/rotterdam3d/poly_ground_coords_test.wkt'
+roof_output_f = '/Users/moonchaeyeon/Desktop/tudelft/sa_uds/rotterdam3d/poly_roof_coords_test.wkt'
+
+ground_wkts = write_wkt_polygon(ground_coords, ground_output_f)
+print('ground done')
+roof_wkts = write_wkt_polygon(roof_coords, roof_output_f)
+print('roof done')
+
+cal_areas = cal_area(roof_wkts, ground_wkts)
+underpass_building_uuid = diff_area(cal_areas)
+print(underpass_building_uuid)
+
+# 각 roof, ground를 빌딩별로? object별로? merge 해야함!! -> calculate the area of surfaces(roof & ground) -> subtract and check differences
+# 'underpass'라고 라벨링할 difference tolerance는? 너무 얇으면 그걸 Underpass라고 할 수 있나? 기둥 케이스처럼 => 이런 ambiguous case는 documentation 필요
