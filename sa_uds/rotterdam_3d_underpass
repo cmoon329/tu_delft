@@ -174,9 +174,6 @@ def write_wkt_polygon(bounds_dict, output_f_name):
     return wkts
 
 def cal_area(roof_wkts, ground_wkts):
-    """수정! 각 roof, ground를 빌딩별로? object별로? merge 해야함!! -> calculate the area of surfaces(roof & ground) -> subtract and check differences"""
-    #row_n = len(wkts.keys())
-    #np_area = np.zeros([row_n, 3])
     areas = {}
 
     for uuid, wkt_str in roof_wkts.items():
@@ -214,7 +211,7 @@ def diff_area(areas):
 
 
 
-
+""" below for testing """
 
 # main
 input_f = "/Users/moonchaeyeon/Desktop/tudelft/sa_uds/rotterdam3d/lod2_export/lod_2_export.json"
@@ -243,6 +240,3 @@ print('roof done')
 cal_areas = cal_area(roof_wkts, ground_wkts)
 underpass_building_uuid = diff_area(cal_areas)
 print(underpass_building_uuid)
-
-# 각 roof, ground를 빌딩별로? object별로? merge 해야함!! -> calculate the area of surfaces(roof & ground) -> subtract and check differences
-# 'underpass'라고 라벨링할 difference tolerance는? 너무 얇으면 그걸 Underpass라고 할 수 있나? 기둥 케이스처럼 => 이런 ambiguous case는 documentation 필요
