@@ -1,5 +1,4 @@
 import json
-import numpy as np
 import shapely
 from shapely import wkt
 
@@ -21,7 +20,7 @@ def roof_boundaries(input_data):
 
             roof_id = {}
             for id, surf in enumerate(smt_surfaces):
-                if surf['type'] == 'RoofSurface':
+                if (surf['type'] == 'RoofSurface') or (surf['type'] == 'OuterFloorSurface'):
                     roof_id[id] = surf['id']
 
             obj_roofs[i] = list(roof_id.values())
@@ -44,14 +43,14 @@ def roof_boundaries(input_data):
                 for b in roof_val[a]:
                     if type == 'Solid':  # array depth == 4
                         bounds.append(boundaries[0][b])
-                    elif type == 'MultiSurface' or 'CompositeSurface':  # array depth == 3
+                    elif (type == 'MultiSurface') or (type == 'CompositeSurface'):  # array depth == 3
                         bounds.append(boundaries[b])
                     else:
                         print(f'geometry type error : {type}')
 
                 roof_bounds[a] = bounds
 
-    return roof_bounds
+    return obj_roofs, roof_bounds
 
 
 def ground_boundaries(input_data):
@@ -101,7 +100,7 @@ def ground_boundaries(input_data):
 
                 ground_bounds[a] = bounds
 
-    return ground_bounds
+    return obj_grounds, ground_bounds
 
 # step 2) get coordinates of vertices
 def vertices_idx_to_coords(input_data):
@@ -142,7 +141,7 @@ def boundary_idx_to_coords(input_dict, v_coords):
     return bounds_coords
 
 def write_wkt_polygon(bounds_dict, output_f_name):
-    wkts = {}
+    bound_wkts = {}
 
     with open(output_f_name, 'w') as output:
         output.write('uuid; geom\n')
@@ -169,74 +168,60 @@ def write_wkt_polygon(bounds_dict, output_f_name):
                 wkt = f'MULTIPOLYGON({all_faces})'
 
             output.write(f'{uuid}; {wkt}\n')
-            wkts[uuid] = wkt
+            bound_wkts[uuid] = wkt
 
-    return wkts
+    return bound_wkts
 
-def cal_area(roof_wkts, ground_wkts):
-    areas = {}
 
-    for uuid, wkt_str in roof_wkts.items():
-        wkt_shp = wkt.loads(wkt_str)
-        if not wkt_shp.is_valid:
-            print(wkt_str)
-            valid_poly = shapely.make_valid(wkt_shp, method='structure')
-            wkt_shp = valid_poly
+def cal_area(obj_surfs, surf_wkts, output_file_nm):
+    obj_surf_union = {}
+    obj_surf_area = {}
 
-        roof_area = shapely.area(wkt_shp)
-        areas[uuid] = list[roof_area]
+    with open(output_file_nm, 'w') as output:
+        output.write('uuid; geom\n')
 
-    for uuid, wkt_str in ground_wkts.items():
-        wkt_shp = wkt.loads(wkt_str)
-        if not wkt_shp.is_valid:
-            print(wkt_str)
-            valid_poly = shapely.make_valid(wkt_shp, method='structure')
-            wkt_shp = valid_poly
+        for uuid, surfs in obj_surfs.items():
+            if len(surfs) == 1:
+                poly = wkt.loads(surf_wkts[surfs[0]])
+                area = shapely.area(poly)
 
-        ground_area = shapely.area(wkt_shp)
-        areas[uuid].append(ground_area)
+                obj_surf_union[uuid] = poly
+                obj_surf_area[uuid] = area
 
-    return areas
+                output.write(f'{uuid}; {poly}\n')
 
-def diff_area(areas):
+            elif len(surfs) > 1:
+                polys = []
+                for i in range(0, len(surfs)):
+                    poly = wkt.loads(surf_wkts[surfs[i]])
+                    polys.append(poly)
+
+                union_polys = shapely.unary_union(polys)
+                union_area = shapely.area(union_polys)
+
+                obj_surf_union[uuid] = union_polys
+                obj_surf_area[uuid] = union_area
+
+                output.write(f'{uuid}; {union_polys}\n')
+
+    return obj_surf_area
+
+
+def diff_area(obj_roof_area, obj_ground_area):
     underpass_building_uuid = []
-    for uuid, area_list in areas.items():
-        diff = area_list[0] - area_list[1]  # roof - ground
-        if diff > 0:
-            underpass_building_uuid.append(uuid)
+    only_roof_building_uuid = []
 
-    return underpass_building_uuid
+    for uuid, area in obj_roof_area.items():
+        roof_area = area
+        if uuid in obj_ground_area.keys():
+            ground_area = obj_ground_area[uuid]
 
+            diff = roof_area - ground_area  # roof - ground
+            eps = 1e-8
+            if diff > eps:
+                underpass_building_uuid.append(uuid)
+                underpass_building_uuid.append(diff)
+        else:
+            only_roof_building_uuid.append(uuid)
 
-
-
-
-""" below for testing """
-
-# main
-input_f = "/Users/moonchaeyeon/Desktop/tudelft/sa_uds/rotterdam3d/lod2_export/lod_2_export.json"
-#input_f = "/Users/moonchaeyeon/Downloads/Export/export.json"
-
-
-with open(input_f) as f:
-    data = json.load(f)
-
-v_coords = vertices_idx_to_coords(data)
-
-roof_bounds = roof_boundaries(data)
-ground_bounds = ground_boundaries(data)
-
-roof_coords = boundary_idx_to_coords(roof_bounds, v_coords)
-ground_coords = boundary_idx_to_coords(ground_bounds, v_coords)
-
-ground_output_f = '/Users/moonchaeyeon/Desktop/tudelft/sa_uds/rotterdam3d/poly_ground_coords_test.wkt'
-roof_output_f = '/Users/moonchaeyeon/Desktop/tudelft/sa_uds/rotterdam3d/poly_roof_coords_test.wkt'
-
-ground_wkts = write_wkt_polygon(ground_coords, ground_output_f)
-print('ground done')
-roof_wkts = write_wkt_polygon(roof_coords, roof_output_f)
-print('roof done')
-
-cal_areas = cal_area(roof_wkts, ground_wkts)
-underpass_building_uuid = diff_area(cal_areas)
-print(underpass_building_uuid)
+    return underpass_building_uuid, only_roof_building_uuid
