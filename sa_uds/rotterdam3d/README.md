@@ -29,7 +29,7 @@ The script takes two input arguments:
 
 The followings are for code verification.
 
-3. **A list of City Object IDs that have only roof and no ground surface**: Printed to the terminal.
+3. **A list of City Object IDs that have only roof surfaces and no ground surfaces**: Printed to the terminal.
 4. **ground_pre_union.wkt**: WKT output containing non-merged ground geometries.
 5. **roof_pre_union.wkt**: WKT output containing non-merged roof geometries.
 6. **ground_union.wkt**: WKT output containing merged ground geometries for each City Object.
