@@ -5,7 +5,7 @@ Download files below
 - test_export.json
 
 Run the code like below 
-python3 underpass_detection_main.py test_export.json --eps 20
+> ### python3 underpass_detection_main.py test_export.json --eps 20
 
 It takes 2 arguments as input
 1) Input file to read, a JSON
