@@ -1,13 +1,24 @@
-## How to run
-Download files below
-* underpass_detection.py
-* underpass_detection_main.py
-* test_export.json
+## How to Run
 
-Run the code like below 
-$\color{blue}{\text{python3 underpass_detection_main.py test_export.json --eps 20}}$ 
+Download the following files:
 
-It takes 2 arguments as input
-1) Input file to read, a JSON
-2) Epsilon threshold for minimum difference between roof and ground areas to consider an underpass
-   (default: 1e-8)
+* `underpass_detection.py`
+* `underpass_detection_main.py`
+* `test_export.json`
+
+Run the script as follows:
+
+```bash
+python3 underpass_detection_main.py test_export.json --eps 20
+```
+
+### Input Arguments
+
+The script takes two input arguments:
+
+1. **Input file**
+   A CityJSON file to be processed.
+
+2. **Epsilon threshold (`--eps`)**
+   The minimum difference between roof and ground areas required to identify an underpass.
+   *(Default: `1e-8`)*
