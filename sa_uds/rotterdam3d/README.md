@@ -42,7 +42,7 @@ Following images are from a test run.
 * Area of Interest: Near the Rotterdam central library [(Google Map)](https://maps.app.goo.gl/Jbf8kTrSAJ9F8WbVA)
 * eps: 1e-8
 
-<img width="848" height="600" alt="underpass_obj" src="https://github.com/user-attachments/assets/145b297e-cf2a-4fbd-b700-2f6cba124c9b" />
+<img width="848" height="600" alt="underpass_obj" src="https://github.com/user-attachments/assets/4faf1b73-fab4-44e5-95dc-0526bd6e1a23" />
 
 ### <case 1> [(Google Map)](https://maps.app.goo.gl/fj1DfkWNB2VPPi8dA)
 <table>
