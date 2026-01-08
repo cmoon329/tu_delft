@@ -23,8 +23,20 @@ The script takes two input arguments:
    : The minimum difference between roof and ground areas required to identify an underpass.
    *(Default: `1e-8`)*
 
+### Outputs
+1. **A list of City Object IDs with Underpasses**: Printed to the terminal.
+2. **under_obj_eps_*(eps value)*.wkt**: WKT output containing merged roof and ground geometries and area differences for City Objects with underpasses. Load into QGIS for visualization.
 
-## Test output 
+The followings are for code verification.
+
+3. **A list of City Object IDs that have only roof and no ground surface**: Printed to the terminal.
+4. **ground_pre_union.wkt**: WKT output containing non-merged ground geometries.
+5. **roof_pre_union.wkt**: WKT output containing non-merged roof geometries.
+6. **ground_union.wkt**: WKT output containing merged ground geometries for each City Object.
+7. **roof_union.wkt**: WKT output containing merged roof geometries for each City Object.
+
+
+## Test result 
 Following images are from a test run.
 
 * Area of Interest: Near the Rotterdam central library [(Google Map)](https://maps.app.goo.gl/Jbf8kTrSAJ9F8WbVA)
