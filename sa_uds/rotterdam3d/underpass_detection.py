@@ -219,7 +219,7 @@ def write_wkt_polygon(surf_bounds_coords, output_file_nm):
                         coords_list.append(f'{coord[0]} {coord[1]}')
                     coords = ', '.join(coords_list)
                     ring_strs.append(f'({coords})')
-                face_str = f'({', '.join(ring_strs)})'
+                face_str = f"({', '.join(ring_strs)})"
                 polygon_strs.append(face_str)
 
             if len(polygon_strs) == 1:
