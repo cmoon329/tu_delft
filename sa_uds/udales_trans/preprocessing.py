@@ -2,6 +2,8 @@ import os
 import re
 import math
 import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import fsolve
 
 class Preprocessing:
     """Class for pre-processing in uDALES"""
@@ -113,7 +115,7 @@ class Preprocessing:
     def set_defaults(self):
         """
         /preprocessing.m -> line 122~127
-        
+
         Function that changes work path
 
         Input:
@@ -139,10 +141,9 @@ class Preprocessing:
             #self.addvar(self, 'lw', 0)
             #self.addvar(self, 'nt2', 0)
 
-        # Trees from file 
+        # Trees from file
         if self.ltrees and self.ltreesfile:
             self.addvar(self, 'treesfile', '')  # name of blocks file
-
 
         self.addvar(self, 'lpurif', 0)  # switch for purifiers (not implemented)
         if self.lpurif:
@@ -168,5 +169,607 @@ class Preprocessing:
             #else:
             #    raise Exception("Must use lcanyons configuration to use purifiers")
 
-                
-        line 213!! 
+        self.addvar(self, 'luoutflowr', 0)  # switch that determines whether u-velocity is corrected to get a fixed outflow rate
+        self.addvar(self, 'lvoutflowr', 0)  # switch that determines whether v-velocity is corrected to get a fixed outflow rate.
+        self.addvar(self, 'luvolflowr', 0)  # switch that determines whether u-velocity is corrected to get a fixed volume flow rate.
+        self.addvar(self, 'lvvolflowr', 0)  # switch that determines whether v-velocity is corrected to get a fixed volume flow rate.
+
+        # &DOMAIN
+        self.addvar(self, 'itot', 64)  # number of cells in x-direction
+        self.addvar(self, 'xlen', 64)  # domain size in x-direction
+        self.addvar(self, 'jtot', 64)  # number of cells in y-direction
+        self.addvar(self, 'ylen', 64)  # domain size in y-direction
+        self.addvar(self, 'ktot', 96)  # number of cells in z-direction
+
+        self.addvar(self, 'dx', self.xlen / self.itot)
+        self.addvar(self, 'dy', self.ylen / self.jtot)
+
+        # BCs
+        self.addvar(self, 'BCxm', 1)
+        self.addvar(self, 'BCym', 1)
+
+        # &ENERGYBALANCE
+        self.addvar(self, 'lEB', 0)
+        self.addvar(self, 'lfacTlyrs', 0)
+
+        # &WALLS
+        self.addvar(self, 'iwallmom', 3)
+        self.addvar(self, 'iwalltemp', 1)
+        self.addvar(self, 'lbottom', 0)
+        self.addvar(self, 'lwritefac', 0)
+
+        # &PHYSICS
+        self.addvar(self, 'ltempeq', 0)
+        self.addvar(self, 'lmoist', 0)
+        self.addvar(self, 'lchem' , 0)     # switch for chemistry (not implemented)
+        self.addvar(self, 'lprofforc', 0)  # switch for 1D geostrophic forcing
+        self.addvar(self, 'lcoriol', 0)    # switch for coriolis forcing
+        self.addvar(self, 'idriver', 0)    # case for driver simulations | 1 - writes driver files | 2 - reads driver files
+
+        if ((not self.luoutflowr) and (not self.lvoutflowr) and (not self.luvolflowr) and (not self.lvvolflowr)
+            and (not self.lprofforc) and (not self.lcoriol) and (self.idriver != 2)):
+                self.addvar(self, 'ldp', 1)
+                print('No forcing switch config. setup and not a driven simulation so initial velocities and/or pressure gradients applied.')
+        else:
+            self.addvar(self, 'ldp', 0)
+
+        if (self.ltempeq == 0) or (self.iwalltemp == 1 and self.iwallmom == 2):
+            self.iwallmom = 3
+
+        # &INPS
+        self.addvar(self, 'zsize', 96)          # domain size in z-direction
+        self.addvar(self, 'lzstretch', 0)       # switch for stretching z grid
+        self.addvar(self, 'stl_file', '')
+        self.addvar(self, 'gen_geom', True)     # generate the geometry from scratch
+        self.addvar(self, 'geom_path', '')      # if not generating the geometry, the path to the geometry files
+        self.addvar(self, 'diag_neighbs', True)
+        self.addvar(self, 'stl_ground', True)   # Does STL include facets at ground
+
+        if self.lzstretch:
+            self.addvar(self, 'stretchconst', 0.01)
+            self.addvar(self, 'lstretchexp', 0)
+            self.addvar(self, 'lstretchexpcheck', 0)
+            self.addvar(self, 'lstretchtanh', 0)
+            self.addvar(self, 'lstretch2tanh', 0)
+            self.addvar(self, 'hlin', 0)
+            self.addvar(self, 'dzlin', 0)
+            self.addvar(self, 'dz', self.dzlin)
+        else:
+            self.addvar(self, 'dz', self.zsize / self.ktot)
+
+        if self.lEB:
+            self.addvar(self, 'maxlen', 10)  # maximum size of facets
+        else
+            self.addvar(self, 'maxlen', np.inf)
+
+        self.addvar(self, 'u0', 0)    # initial u-velocity - also applied as geostrophic term where applicable
+        self.addvar(self, 'v0', 0)    # initial v-velocity - also applied as geostrophic term where applicable
+        self.addvar(self, 'tke', 0)
+        self.addvar(self, 'dpdx', 0)   # dp/dx [Pa/m]
+        self.addvar(self, 'dpdy', 0)   # dp/dy [Pa/m]
+        self.addvar(self, 'thl0', 288) # temperature at lowest level
+        self.addvar(self, 'qt0', 0)    # specific humidity
+
+        self.addvar(self, 'nsv', 0)    # number of scalar variables (not implemented)
+
+        if self.nsv > 0:
+            self.addvar(self, 'sv10', 0)        # first scalar variable initial/ background conc.
+            self.addvar(self, 'sv20', 0)        # second scalar variable initial/ background conc.
+            self.addvar(self, 'sv30', 0)        # third scalar variable initial/ background conc.
+            self.addvar(self, 'sv40', 0)        # fourth scalar variable initial/ background conc.
+        	self.addvar(self, 'sv50', 0)        # fifth scalar variable initial/ background conc.
+        	self.addvar(self, 'lscasrc', 0)     # switch for scalar point source
+        	self.addvar(self, 'lscasrcl', 0)    # switch for scalar line source
+        	self.addvar(self, 'lscasrcr', 0)    # switch for network of scalar point source
+        	self.addvar(self, 'xS', -1)         # x-position of scalar point source [m]
+        	self.addvar(self, 'yS', -1)         # y-position of scalar point source [m]
+        	self.addvar(self, 'zS', -1)         # z-position of scalar point source [m]
+            self.addvar(self, 'SSp', -1)        # source strength of scalar point source
+        	self.addvar(self, 'sigSp', -1)      # standard deviation/spread of scalar point source [g] - per unit time??
+        	self.addvar(self, 'nscasrc', 0)     # number of scalar point sources
+            self.addvar(self, 'xSb', -1)        # x-position of scalar line source begining point [m]
+            self.addvar(self, 'ySb', -1)        # y-position of scalar line source begining point [m]
+            self.addvar(self, 'zSb', -1)        # z-position of scalar line source begining point [m]
+            self.addvar(self, 'xSe', -1)        # x-position of scalar line source ending point [m]
+            self.addvar(self, 'ySe', -1)        # y-position of scalar line source ending point [m]
+            self.addvar(self, 'zSe', -1)        # z-position of scalar line source ending point [m]
+            self.addvar(self, 'SSl', -1)        # source strength of scalar line source [g/m] - per unit time??
+        	self.addvar(self, 'sigSl', -1)      # standard deviation/spread of scalar line source
+            self.addvar(self, 'nscasrcl', 0)    # number of scalar point sources
+
+        self.addvar(self, 'lapse', 0)  # lapse rate [K/s]
+        self.addvar(self, 'w_s', 0)    # subsidence [*units?*]
+        self.addvar(self, 'R', 0)      # radiative forcing [*units?*]
+
+        self.addvar(self, 'libm', 1)
+
+        self.addvar(self, 'isolid_bound', 1)
+        # Option for solid/fluid detection and boundary points calculation;
+        # 1: inmypoly_fortran (Fortran), 2: inmypoly (MATLAB) (useful for debugging),
+        # 3: inpolyhedron (MATLAB): https://www.mathworks.com/matlabcentral/fileexchange/37856-inpolyhedron-are-points-inside-a-triangulated-volume
+
+        self.addvar(self, 'ifacsec', 1)
+        # Option for facet section calculation (matchFacetsToCells)
+        # 1: Fortran, 2: MATLAB (useful for debugging)
+
+        self.addvar(self, 'read_types', 0)
+        if self.read_types:
+            self.addvar(self, 'types_path', 0)
+
+        if obj.lEB:
+            self.addvar(self, 'xazimuth', 90)  # azimuth of x-direction wrt N. Default: x = East
+                                               # north -> xazimuth = 0
+                                               # east  -> xazimuth = 90
+                                               # south -> xazimuth = 180
+                                               # west  -> xazimuth = 270
+            self.addvar(self, 'ltimedepsw', 0)
+            self.addvar(self, 'ishortwave', 1)
+            # Option for direct shortwave radiation calculation
+            # 1: Fortran, 2: MATLAB (useful for debugging)
+            self.addvar(self, 'isolar', 1)
+            # 1: custom (uDALES v1), 2: from lat/long, 3: from weatherfile
+            self.addvar(self, 'runtime', 0)
+            self.addvar(self, 'dtEB', 10.0)       # energy balance timestep
+            self.addvar(self, 'dtSP', self.dtEB)  # solar position time step
+
+            if self.isolar == 1:
+                self.addvar(self, 'solarazimuth', 135)    # solar azimuth angle
+                self.addvar(self, 'solarzenith', 28.4066) # zenith angle
+                self.addvar(self, 'I', 800)               # Direct normal irradiance [W/m2]
+                self.addvar(self, 'Dsky', 418.8041)       # Diffuse incoming radiation [W/m2]
+            elif self.isolar == 2:
+                self.addvar(self, 'longitude', -0.13) # longitude
+                self.addvar(self, 'latitude', 51.5)   # latitude
+                self.addvar(self, 'timezone', 0)      # timezone
+                self.addvar(self, 'elevation', 0)     # timezone
+                self.addvar(self, 'hour', 6)
+                self.addvar(self, 'minute', 0)
+                self.addvar(self, 'second', 0)
+                self.addvar(self, 'year', 2011)
+                self.addvar(self, 'month', 9)
+                self.addvar(self, 'day', 30)
+            elif self.isolar == 3:
+                self.addvar(self, 'weatherfname', '')
+                self.addvar(self, 'hour', 0)
+                self.addvar(self, 'minute', 0)
+                self.addvar(self, 'second', 0)
+                self.addvar(self, 'year', 0)
+                self.addvar(self, 'month', 6)
+                self.addvar(self, 'day', 1)
+
+            self.addvar(self, 'psc_res', 0.1)      # Poly scan conversion resolution for solar radiation calculation (lower number = better)
+            self.addvar(self, 'lvfsparse', False)  # view factors given in sparse format
+
+            # view3d output format. 0: text, 1: binary, 2: sparse
+            self.addvar(self, 'calc_vf', True)
+            self.addvar(self, 'maxD', np.inf)  # maximum distance to check view factors
+
+            if not self.calc_vf:
+               self.addvar(self, 'vf_path', '')
+
+            self.addvar(self, 'view3d_out', 0)
+            if (self.view3d_out == 2) and (not self.lvfsparse):
+                raise Exception('If sparse view3d output is desired, set lvfsparse=.true. in &ENERGYBALANCE.')
+
+        self.addvar(self, 'facT', 288.0)   # Initial facet temperatures.
+        self.addvar(self, 'nfaclyrs', 3)  # Number of facet layers
+        self.addvar(self, 'nfcts', 0)
+        self.generate_factypes(self)
+        self.addvar(self, 'facT_file', '')
+
+    def generate_factypes(self):
+        K = self.nfaclyrs
+        factypes = []
+
+        # Bounding walls (bw)
+        id_bw  = -101
+        lGR_bw = 0
+        z0_bw  = 0
+        z0h_bw = 0
+        al_bw  = 0.5
+        em_bw  = 0.85
+        D_bw   = 0.0
+        d_bw   = D_bw / K
+        C_bw   = 0.0
+        l_bw   = 0.0
+        k_bw   = 0.0
+        bw = [id_bw, lGR_bw, z0_bw, z0h_bw, al_bw, em_bw] + \
+             [d_bw] * K + \
+             [C_bw] * K + \
+             [l_bw] * K + \
+             [k_bw] * (K + 1)
+        factypes.append(bw)
+
+        # Floors (f)
+        id_f  = -1
+        lGR_f = 0
+        z0_f  = 0.05
+        z0h_f = 0.00035
+        al_f  = 0.5
+        em_f  = 0.85
+        D_f   = 0.5
+        d_f   = D_f / K
+        C_f   = 1.875e6
+        l_f   = 0.75
+        k_f   = 0.4e-6
+
+        if (K == 3):
+            # Reproduce the original factypes.inp (d_f not constant for each layer)
+            f = [id_f, lGR_f, z0_f, z0h_f, al_f, em_f, 0.1, 0.2, 0.2] + \
+                [C_f] * K + \
+                [l_f] * K + \
+                [k_f] * (K + 1)
+        else:
+            f = [id_f, lGR_f, z0_f, z0h_f, al_f, em_f]
+                [d_f] * K + \
+                [C_f] * K + \
+                [l_f] * K + \
+                [k_f] * (K + 1)
+
+        factypes.append(f)
+
+        # Dummy (dm)
+        id_dm  = 0
+        lGR_dm = 0
+        z0_dm  = 0
+        z0h_dm = 0
+        al_dm  = 0
+        em_dm  = 0
+        D_dm   = 0.3
+        d_dm = D_dm / K
+        C_dm = 1.875e6
+        l_dm = 0.75
+        k_dm = 0.4e-6
+        dm = [id_dm, lGR_dm, z0_dm, z0h_dm, al_dm, em_dm] + \
+             [d_dm] * K + \
+             [C_dm] * K + \
+             [l_dm] * K + \
+             [k_dm] * (K + 1)
+        factypes.append(dm)
+
+        # Concrete (c)
+        id_c  = 1
+        lGR_c = 0
+        z0_c  = 0.05
+        z0h_c = 0.00035
+        al_c = 0.5
+        em_c = 0.85
+        D_c = 0.36
+        d_c = D_c / K
+        C_c = 2.5e6
+        l_c = 1
+        k_c = 0.4e-6
+        c = [id_c, lGR_c, z0_c, z0h_c, al_c, em_c] + \
+            [d_c] * K + \
+            [C_c] * K + \
+            [l_c] * K + \
+            [k_c] * (K + 1)
+        factypes.append(c)
+
+        # Brick (b)
+        id_b  = 2
+        lGR_b = 0
+        z0_b  = 0.05
+        z0h_b = 0.00035
+        al_b = 0.5
+        em_b = 0.85
+        D_b = 0.36
+        d_b = D_b / K
+        C_b = 2.766667e6
+        l_b = 0.83
+        k_b = 0.3e-6
+        b = [id_b, lGR_b, z0_b, z0h_b, al_b, em_b] + \
+            [d_b] * K + \
+            [C_b] * K + \
+            [l_b] * K + \
+            [k_b] * (K + 1)
+        factypes.append(b)
+
+        # Stone (s)
+        id_s  = 3
+        lGR_s = 0
+        z0_s  = 0.05
+        z0h_s = 0.00035
+        al_s = 0.5
+        em_s = 0.85
+        D_s = 0.36
+        d_s = D_s / K
+        C_s = 2.19e6
+        l_s = 2.19
+        k_s = 1e-6
+        s = [id_s, lGR_s, z0_s, z0h_s, al_s, em_s] + \
+            [d_s] * K + \
+            [C_s] * K + \
+            [l_s] * K + \
+            [k_s] * (K + 1)
+        factypes.append(s)
+
+        # Wood (w)
+        id_w  = 4
+        lGR_w = 0
+        z0_w  = 0.05
+        z0h_w = 0.00035
+        al_w = 0.5
+        em_w = 0.85
+        D_w = 0.36
+        d_w = D_w / K
+        C_w = 1e6
+        l_w = 0.1
+        k_w = 0.1e-6
+        w = [id_w, lGR_w, z0_w, z0h_w, al_w, em_w] + \
+            [d_w] * K + \
+            [C_w] * K + \
+            [l_w] * K + \
+            [k_w] * (K + 1)
+        factypes.append(w)
+
+        # GR1
+        id_GR1 = 11
+        lGR_GR1 = 1
+        z0_GR1 = 0.05
+        z0h_GR1 = 0.00035
+        al_GR1 = 0.25
+        em_GR1 = 0.95
+        D_GR1 = 0.6
+        d_GR1 = D_GR1 / K
+        C_GR1 = 5e6
+        l_GR1 = 2
+        k_GR1 = 0.4e-6
+        GR1 = [id_GR1, lGR_GR1, z0_GR1, z0h_GR1, al_GR1, em_GR1] + \
+              [d_GR1] * K + \
+              [C_GR1] * K + \
+              [l_GR1] * K + \
+              [k_GR1] * (K + 1)
+        factypes.append(GR1)
+
+        # GR2
+        id_GR2 = 12
+        lGR_GR2 = 1
+        z0_GR2 = 0.05
+        z0h_GR2 = 0.00035
+        al_GR2 = 0.35
+        em_GR2 = 0.90
+        D_GR2 = 0.6
+        d_GR2 = D_GR2 / K
+        C_GR2 = 2e6
+        l_GR2 = 0.8
+        k_GR2 = 0.4e-6
+        GR2 = [id_GR2, lGR_GR2, z0_GR2, z0h_GR2, al_GR2, em_GR2] + \
+              [d_GR2] * K + \
+              [C_GR2] * K + \
+              [l_GR2] * K + \
+              [k_GR2] * (K + 1)
+        factypes.append(GR2)
+
+        self.addvar(self, 'factypes', factypes)
+
+    def write_facets(self, types, normals):
+        fname = f'facet.inp.{self.expnr}'
+
+        with open(fname, 'w') as fileID:
+            fileID.write('# type, normal\n')
+
+            if types.ndim == 1:
+                types = types.reshape(-1, 1)
+
+            if normals.ndim == 1:
+                normals = normals.reshape(1, -1)
+
+            data = np.hstack([types, normals])
+
+            for row in data:
+                fileID.write(f'{row[0]:<4.0f} {row[1]:<4.4f} {row[2]:<4.4f} {row[3]:<4.4f}\n')
+
+    def write_factypes(self):
+        K = self.nfaclyrs
+
+        fname = f'factypes.inp.{self.expnr}'
+
+        dheaderstring = ''
+        for k in range(1, K + 1):
+            dheaderstring += f'  d{k} [m]'
+
+        Cheaderstring = ''
+        for k in range(1, K + 1):
+            Cheaderstring += f'  C{k} [J/(K m^3)]'
+
+        lheaderstring = ''
+        for k in range(1, K + 1):
+            lheaderstring += f'  l{k} [W/(m K)]'
+
+        kheaderstring = ''
+        for k in range(1, K + 2):
+            kheaderstring += f'  k{k} [W/(m K)]'
+
+        with open(fname, 'w') as fileID:
+            fileID.write(f'# walltype, {K} layers per type where layer 1 is the outdoor side and layer {K} is indoor side\n')
+            fileID.write('# 0=default dummy, -1=asphalt floors; -101=concrete bounding walls; 1=concrete; 2=bricks; 3=stone; 4=painted wood; 11=GR1; 12=GR2\n')
+            fileID.write(f'# wallid  lGR  z0 [m]  z0h [m]  al [-]  em [-]{dheaderstring}{Cheaderstring}{lheaderstring}{kheaderstring}\n')
+
+            valstring1 = '{:8d}  {:3d}  {:6.2f}  {:7.5f}  {:6.2f}  {:6.2f}'
+
+            valstring2 = ''
+            for k in range(1, K + 1):
+                valstring2 += '  {:6.2f}'
+
+            for k in range(1, K + 1):
+                valstring2 += '  {:14.0f}'
+
+            for k in range(1, K + 1):
+                valstring2 += ' {:13.4f}'
+
+            for k in range(1, K + 2):
+                valstring2 += ' {:13.8f}'
+
+            valstring = f'{valstring1}{valstring2}'
+
+            nfactypes = self.factypes.shape[0]
+
+            for i in range(nfactypes):
+                row_data = self.factypes[i, :]
+                fileID.write(valstring.format(*row_data) + '\n')
+
+    def plot_profiles(self):
+        plt.figure(figsize=(16, 4))
+
+        plt.subplot(1, 4, 1)
+        plt.plot(self.pr[:, 1], np.arange(1, self.ktot + 1))
+        plt.title('Temperature')
+
+        plt.subplot(1, 4, 2)
+        plt.plot(self.ls[:, 9], np.arange(1, self.ktot + 1))
+        plt.title('Radiative forcing')
+
+        plt.subplot(1, 4, 3)
+        plt.plot(self.ls[:, 5], np.arange(1, self.ktot + 1))
+        plt.title('Subsidence')
+
+        plt.subplot(1, 4, 4)
+        plt.plot(self.ls[:, 1], np.arange(1, self.ktot + 1), label='u')
+        plt.plot(self.ls[:, 2], np.arange(1, self.ktot + 1), linestyle='--', color='red', label='v')
+        plt.title('Velocity')
+        plt.legend()
+
+        plt.tight_layout()
+        plt.show()
+
+    def generate_xygrid(self):
+        self.addvar(self, 'xf', np.arange(0.5 * self.dx, self.xlen, self.dx))
+        self.addvar(self, 'yf', np.arange(0.5 * self.dy, self.ylen, self.dy))
+        self.addvar(self, 'xh', np.arange(0, self.xlen + self.dx, self.dx))
+        self.addvar(self, 'yh', np.arange(0, self.ylen + self.dy, self.dy))
+
+    def write_xgrid(self):
+        fname = f'xgrid.inp.{self.expnr}'
+
+        with open(fname, 'w') as xgrid:
+            xgrid.write(f'{"#     x-grid":>12}\n')
+            xgrid.write(f'{"#           ":>12}\n')
+
+            for x in self.xf:
+                xgrid.write(f'{x:<20.15f}\n')
+
+    def generate_zgrid(self):
+        if not self.lzstretch:
+            self.addvar(self, 'zf', np.arange(0.5 * self.dz, self.zsize, self.dz))
+            self.addvar(self, 'zh', np.arange(0, self.zsize + self.dz, self.dz))
+            self.addvar(self, 'dzf', (self.zh[1:] - self.zh[:-1]))
+        else:
+            if self.lstretchexp:
+                self.stretch_exp(self)
+            elif self.lstretchexpcheck:
+                self.stretch_exp_check(self)
+            elif self.lstretchtanh:
+                self.stretch_tanh(self)
+            elif self.lstretch2tanh:
+                self.stretch_2tanh(self)
+            else:
+                raise Exception('Invalid stretch')
+
+            plt.ioff()
+
+            fig, ax = plt.subplots()
+            ax.plot(self.dzf)
+            ax.set_title('dz variation')
+            ax.set_xlabel(r'$k$')
+            ax.set_ylabel(r'$dz$')
+            ax.axis('tight')
+
+            plt.savefig('dz_variation.png')
+            plt.close(fig)
+
+            plt.ion()
+
+    def stretch_exp(self):
+        il = int(round(self.hlin / self.dzlin))
+        ir = self.ktot - il
+
+        self.addvar(self, 'zf', np.zeros(self.ktot))
+        self.addvar(self, 'dzf', np.zeros(self.ktot))
+        self.addvar(self, 'zh', np.zeros(self.ktot + 1))
+
+        self.zf[:il] = np.arange(0.5 * self.dzlin, self.hlin + 0.5 * self.dzlin, self.dzlin)
+        self.zh[:il + 1] = np.arange(0, self.hlin + self.dzlin, self.dzlin)
+
+        gf = self.stretchconst
+
+        while True:
+            indices = np.arange(0, ir + 1, 1)
+            self.zh[il:] = self.zh[il] + (self.zsize - self.zh[il]) * (np.exp(gf * indices / ir) - 1) / (np.exp(gf) - 1)  # dh has been replaced by zsize
+
+            if (self.zh[il + 1] - self.zh[il]) < self.dzlin:
+                gf -= 0.01  # make sufficiently small steps to avoid an initial bump in dz
+            else:
+                if (self.zh[-1] - self.zh[-2]) > 3 * self.dzlin:
+                    print('Warnning: final grid spacing large - consider reducing domain height')
+                break
+
+        obj.zf = (obj.zh[:-1] + obj.zh[1:]) / 2
+        obj.dzf = obj.zh[1:] - obj.zh[:-1]
+
+    def stretch_exp_check(self):
+        il = int(round(self.hlin / self.dzlin))
+        ir = self.ktot - il
+        z0 = il * self.dzlin  # hlin will be modified as z0
+
+        self.addvar(self, 'zf', np.zeros(self.ktot))
+        self.addvar(self, 'dzf', np.zeros(self.ktot))
+        self.addvar(self, 'zh', np.zeros(self.ktot + 1))
+
+        # Introduce zhat(xi) = (z(xi)-z0) / L where xi = [0, 1] is the
+        # computational space variable which is discretised uniformly. Note that
+        # zhat = [0, 1] also by construction.
+        #
+        # Use a function zhat = A (exp(alpha xi)-1) to represent the
+        # grid-nonuniformity. There are three conditions on this function:
+        #
+        #   zhat(0) = 0,       zhat(1) = 1.
+        #
+        #   dz/dxi(0) = dz/dzhat dzhat/dxi = L dzhat/dxi <= dz0*N
+        #
+        # Solving this for the function above results in
+        #
+        # A = 1 / (exp(alpha)-1) and
+        #
+        # alpha / (exp(alpha)-1) = (dz0*N)/L
+        #
+        # The last equation will need to be determined via a root finding procedure.
+
+        L = self.zsize - z0
+        dxi = 1 / ir
+        xi = np.linspace(0, 1, ir + 1)
+
+        # determine alpha; alpha is exponential stretch constant
+        def eq(alpha):
+            return alpha - (self.dzlin * ir) / L * (np.exp(alpha) - 1)
+
+        alpha_sol = fsolve(eq, 1.0)
+        alpha = alpha_sol[0]
+        A = 1 / (np.exp(alpha) - 1.0)
+        # print(f'alpha value chosen: alpha = {alpha:8.4f}\n')
+
+        zhat = lambda xi_val: A * (np.exp(alpha * xi_val) - 1.0)
+        z_func = lambda xi_val: z0 + zhat(xi_val) * L
+
+        # create grid
+        self.zh[0:il+1] = np.arange(0, z0 + self.dzlin/2, self.dzlin)  # linear part
+        self.zh[il:self.ktot + 1] = z_func(xi)  # stretched part
+
+        # perform grid quality checks
+        dz = np.diff(self.zh)
+        stretch = dz[1:] / dz[:-1]
+        if (np.min(stretch) < 0.95) or (np.max(stretch) > 1.05):
+            print('WARNING -- generated grid is of bad quality')
+            print('Stretching factor = dz(n+1)/dz(n) should be between 0.95 and 1.05')
+            print(f'min value = {np.min(stretch):8.3f}')
+            print(f'max value = {np.max(stretch):8.3f}')
+
+        # give a warning if the grid is refined near the top
+        if alpha < 0:
+            print('WARNING -- possibly incorrect value for alpha')
+            print('The calculated value of alpha is less than zero, which implies you are refining the grid towards the domain top.')
+
+        self.zf = (self.zh[1:] + self.zh[:-1]) / 2.0
+        self.dzf = self.zh[1:] - self.zh[:-1]
+
+# NEXT >> function stretch_tanh(obj)
