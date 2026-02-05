@@ -772,5 +772,246 @@ class Preprocessing:
 
         self.zf = (self.zh[1:] + self.zh[:-1]) / 2.0
         self.dzf = self.zh[1:] - self.zh[:-1]
+    
+    def stretch_tanh(self):
+        il = int(round(self.hlin / self.dzlin))
+        ir = self.ktot - il
 
-# NEXT >> function stretch_tanh(obj)
+        self.addvar(self, 'zf', np.zeros(self.ktot))
+        self.addvar(self, 'dzf', np.zeros(self.ktot))
+        self.addvar(self, 'zh', np.zeros(self.ktot + 1))
+
+        self.zf[:il] = np.arange(0.5 * self.dzlin, self.hlin + 0.5 * self.dzlin, self.dzlin)
+        self.zh[:il + 1] = np.arange(0, self.hlin + self.dzlin, self.dzlin)
+
+        gf = self.stretchconst
+
+        while True:
+            self.zh[il:] = self.zh[il] + (self.zsize - self.zh[il]) * (1 - np.tanh(gf * (1 - 2 * np.arange(0, ir + 1, 1) / (2 * ir))) / np.tanh(gf)))
+
+            if (self.zh[il + 1] - self.zh[il]) < self.dzlin:
+                gf -= 0.01  # make sufficiently small steps to avoid an initial bump in dz
+            else:
+                if (self.zh[-1] - self.zh[-2]) > 3 * self.dzlin:
+                    print('Warning: final grid spacing large - consider reducing domain height')
+                    break
+
+            for i in range(self.ktot):
+                self.zf[i] = 0.5 * (self.zh[i] + self.zh[i + 1])
+                self.dzf[i] = self.zh[i + 1] - self.zh[i]
+
+    def stretch_2tanh(self):
+        il = int(round(self.hlin / self.dzlin))
+        ir = self.ktot - il
+
+        self.addvar(self, 'zf', np.zeros(self.ktot))
+        self.addvar(self, 'dzf', np.zeros(self.ktot))
+        self.addvar(self, 'zh', np.zeros(self.ktot + 1))
+
+        self.zf[:il] = np.arange(0.5 * self.dzlin, self.hlin + 0.5 * self.dzlin, self.dzlin)
+        self.zh[:il + 1] = np.arange(0, self.hlin + self.dzlin, self.dzlin)
+
+        gf = self.stretchconst
+
+        while True:
+            self.zh[il:] = self.zh[il] + (self.zsize - self.zh[il]) / 2 * (1 - np.tanh(gf * (1 - 2 * np.arange(0, ir + 1, 1) / ir)) / np.tanh(gf))
+
+            if (self.zh[il + 1] - self.zh[il]) < self.dzlin:
+                gf -= 0.01  # make sufficiently small steps to avoid an initial bump in dz
+            else:
+                if np.max(np.diff(self.zh)) > 3 * self.dzlin:
+                    print('Warning: final grid spacing large - consider reducing domain height')
+                    break
+
+        for i in range(self.ktot):
+            self.zf[i] = (self.zh[i] + self.zh[i + 1]) / 2
+            self.dzf[i] = self.zh[i + 1] - self.zh[i]
+
+    def write_zgrid(self):
+        fname = f'zgrid.inp.{self.expnr}'
+        with open(fname, 'w') as zgrid:
+            zgrid.write(f"{'#     z-grid':12s}\n")
+            zgrid.write(f"{'#           ':12s}\n")
+            for z in self.zf:
+                zgrid.write(f"{z:20.15f}\n")
+
+    def generate_lscale(self):
+        if sum([(self.luoutflowr or self.lvoutflowr), (self.luvolflowr or self.lvvolflowr), self.lprofforc, self.lcoriol, self.ldp]) > 1:
+            raise Exception("More than one forcing type specified")
+
+        self.addvar(self, 'ls', np.zeros((len(self.zf), 10))
+
+        self.ls[:, 0] = self.zf
+        self.ls[:, 5] = self.w_s
+        self.ls[:, 9] = self.R
+
+        if self.lprofforc or self.lcoriol:
+            self.ls[:, 1] = self.u0
+            self.ls[:, 2] = self.v0
+        elif self.ldp:
+            self.ls[:, 3] = self.dpdx
+            self.ls[:, 4] = self.dpdy
+
+    def write_lscale(self):
+        fname = f'lscale.inp.{self.expnr}'
+        with open(fname, 'w') as lscale:
+            lscale.write(f"{'# SDBL flow':12s}\n")
+            lscale.write(f"{'# z uq vq pqx pqy wfls dqtdxls dqtdyls dqtdtls dthlrad':60s}\n")
+            for row in self.ls:
+                lscale.write(f"{row[0]:<20.15f} {row[1]:<12.6f} {row[2]:<12.6f} {row[3]:<12.9f} {row[4]:<12.6f} {row[5]:<15.9f} {row[6]:<12.6f} {row[7]:<12.6f} {row[8]:<12.6f} {row[9]:<17.12f}\n")
+
+    def generate_prof(self):
+        self.addvar(self, 'pr', np.zeros((len(self.zf), 6)))
+        self.pr[:, 0] = self.zf
+
+        if self.lapse:
+            thl = np.zeros(self.ktot)
+            thl[0] = self.thl0
+            for k in range(self.ktot - 1):
+                thl[k + 1] = thl[k] + self.lapse * self.zsize / self.ktot
+            self.pr[:, 1] = thl
+        else:
+            self.pr[:, 1] = self.thl0
+
+        self.pr[:, 2] = self.qt0
+        self.pr[:, 3] = self.u0
+        self.pr[:, 4] = self.v0
+        self.pr[:, 5] = self.tke
+
+    def write_prof(self):
+        fname = f'prof.inp.{self.expnr}'
+        with open(fname, 'w') as prof:
+            prof.write(f"{'# SDBL flow':<12s}\n")
+            prof.write(f"{'# z thl qt u v tke':<60s}\n")
+            for row in self.pr:
+                prof.write(f"{row[0]:20.15f} {row[1]:12.6f} {row[2]:12.6f} {row[3]:12.6f} {row[4]:12.6f} {row[5]:12.6f}\n")
+
+    def generate_scalar(self):
+        self.addvar(self, 'sc', np.zeros((len(self.zf), self.nsv + 1)))
+        self.sc[:, 0] = self.zf
+
+        if self.nsv > 0:
+            self.sc[:, 1] = self.sv10
+        if self.nsv > 1:
+            self.sc[:, 2] = self.sv20
+        if self.nsv > 2:
+            self.sc[:, 3] = self.sv30
+        if self.nsv > 3:
+            self.sc[:, 4] = self.sv40
+        if self.nsv > 4:
+            self.sc[:, 5] = self.sv50
+
+    def write_scalar(self):
+        fname = f'scalar.inp.{self.expnr}'
+        with open(fname, 'w') as scalar:
+            scalar.write(f"{'# SDBL flow':<12s}\n")
+            scalar.write(f"{'# z scaN,  N=1,2...nsv':<60s}\n")
+            for row in self.sc:
+                line = f"{row[0]:<20.15f}"
+                for i in range(1, self.nsv + 1):
+                    line += f" {row[i]:<14.10f}"
+                scalar.write(line + "\n")
+
+    def generate_scalarsources(self):
+        if ((self.lscasrc) and (self.nscasrc < 2) and any([self.nsv == 0, self.nscasrc < 1, self.xS == -1, self.yS == -1, self.zS == -1, self.SSp == -1, self.sigSp == -1])):
+            raise Exception("Must set non-zero positive nsv and nscasrc under &SCALARS, and appropriate xS, yS, zS, SSp and sigSp under &INPS for scalar point source")
+        if ((self.lscasrcl) and (self.nscasrcl < 2) and any([self.nsv == 0, self.nscasrcl < 1, self.xSb == -1, self.ySb == -1, self.zSb == -1, self.xSe == -1, self.ySe == -1, self.zSe == -1, self.SSl == -1, self.sigSl == -1])):
+            raise Exception("Must set non-zero positive nsv and nscasrcl &SCALARS, and appropriate xSb, ySb, zSb, xSe, ySe, zSe, SSl and sigSl under &INPS for scalar line source")
+        if self.lascasrcr:
+            raise Exception("Network of point sources not currently implemented")
+
+        if self.lscasrc:
+            self.addvar(self, 'scasrcp', np.zeros((self.nscasrc, 5)))
+            if self.nscasrc == 1:
+                self.scasrcp[0, 0] = self.xS
+                self.scasrcp[0, 1] = self.yS
+                self.scasrcp[0, 2] = self.zS
+                self.scasrcp[0, 3] = self.SSp
+                self.scasrcp[0, 4] = self.sigSp
+            if (self.nscasrc > 1 or self.nsv > 1):
+                print('Warning!! Manually set appropriate xS, yS, zS, SS and sigS for scalar source points in scalarsourcep.inp.')
+
+        if self.lscasrcl:
+            self.addvar(self, 'scasrcl', np.zeros((self.nscasrcl, 8)))
+            if self.nscasrcl == 1:
+                self.scasrcl[0, 0] = self.xSb
+                self.scasrcl[0, 1] = self.ySb
+                self.scasrcl[0, 2] = self.zSb
+                self.scasrcl[0, 3] = self.xSe
+                self.scasrcl[0, 4] = self.ySe
+                self.scasrcl[0, 5] = self.zSe
+                self.scasrcl[0, 6] = self.SSl
+                self.scasrcl[0, 7] = self.sigSl
+            if self.nscasrcl > 1 or self.nsv > 1:
+                print('Warning!! Manually set appropriate xSb, ySb, zSb, xSe, ySe, zSe, SS and sigS for scalar source lines in scalarsourcel.inp.')
+
+    def write_scalarsources(self):
+        for ii in range(1, self.nsv + 1):
+            if self.lscasrc:
+                fname = f'scalarsourcep.inp.{ii}.{self.expnr}'
+                with open(fname, 'w') as scasrcp:
+                    scasrcp.write(f"{'# Scalar point source data':<30s}\n")
+                    scasrcp.write(f"{'#xS yS zS SS sigS':<60s}\n")
+                    for row in self.scasrcp:
+                        scasrcp.write(f"{row[0]:12.6f}\t {row[1]:12.6f}\t {row[2]:12.6f}\t {row[3]:12.6f}\t {row[4]:12.6f}\t\n")
+            if self.lscasrcl:
+                fname = f'scalarsourcel.inp.{ii}.{self.expnr}'
+                with open(fname, 'w') as self.scasrcl:
+                    scasrcl.write(f"{row[0]:12.6f}\t {row[1]:12.6f}\t {row[2]:12.6f}\t {row[3]:12.6f}\t {row[4]:12.6f}\t {row[5]:12.6f}\t {row[6]:12.6f}\t {row[7]:12.6f}\t\n")
+            if self.lscasrc or self.lscasrcl:
+                print('Ensure scalar source locations do not intersect any building !! If sure, ignore this message.')  # needs to be removed later
+
+    def plot_scalarsources(self):
+        for ii in range(1, self.nsv + 1):
+            if self.lscasrc:
+                fname = f'scalarsourcep.inp.{ii}.{self.expnr}'
+                with open(fname, 'r') as fileID:
+                    header_line1 = fileID.readline()
+                    header_line2 = fileID.readline()
+
+                    data = []
+                    for i in range(self.nscasrc):
+                        data_line = fileID.readline()
+                        values = [float(x) for x in data_line.split() if x]
+                        data.append(values)
+                data = np.array(data)
+                for i in range(self.nscasrc):
+                    x, y, z = data[i, 0], data[i, 1], data[i, 2]
+                    marker_size = round(15 * data[i, 4])
+                    marker_face_color = [0, 0, data[i, 3]/np.max(data[:, 3])]
+
+                    ax.scatter(x, y, z, s=marker_size**2, c=[marker_face_color], marker='o', edgecolors='black')
+
+            if self.lscasrcl:
+                fname = f'scalarsourcel.inp.{ii}.{self.expnr}'
+                with open(fname, 'r') as fileID:
+                    header_line1 = fileID.readline()
+                    header_line2 = fileID.readline()
+
+                    data = []
+                    for i in range(self.nscasrcl):
+                        data_line = fileID.readline()
+                        values = [float(x) for x in data_line.split() if x]
+                        data.append(values)
+                data = np.array(data)
+                for i in range(self.nscasrcl):
+                    x = [data[i, 0], data[i, 3]]
+                    y = [data[i, 1], data[i, 4]]
+                    z = [data[i, 2], data[i, 5]]
+                    line_width = round(5 * data[i, 7])
+                    color = [0, 0, data[i, 6]/np.max(data[:, 6])]
+
+                    ax.plot(x, y, z, linewidth=line_width, color=color)
+
+    def set_nfcts(self, nfcts):
+        self.nfcts = nfcts
+
+    def write_vf(self, vf):
+        fname = f'vf.nc.inp.{self.expnr}'
+        with nc.Dataset(fname, 'w', format='NETCDF4') as ds:
+            ds.createDimension('rows', self.nfcts)
+            ds.createDimension('columns', self.nfcts)
+            varid = ds.createVariable('view factor', 'f4', ('rows', 'columns'))
+            view_factor[:] = vf
+
+# NEXT >> function write_vfsparse(obj, vfsparse)
