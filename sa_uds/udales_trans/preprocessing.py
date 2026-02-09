@@ -1013,5 +1013,155 @@ class Preprocessing:
             ds.createDimension('columns', self.nfcts)
             varid = ds.createVariable('view factor', 'f4', ('rows', 'columns'))
             view_factor[:] = vf
+            
+    def write_vfsparse(self, vfsparse):
+        # [i,j,s] = find(vfsparse)
+        i, j = np.where(vfsparse >= 5e-7)
+        i = i + 1  # add 1 for 1-based indexing (MATLAB compatibility)
+        j = j + 1
+        s = vfsparse[vfsparse >= 5e-7]
 
-# NEXT >> function write_vfsparse(obj, vfsparse)
+        data = np.column_stack([i, j, s])
+        sorted_indices = np.lexsort((data[:, 1], data[:, 0]))
+        data = data[sorted_indices]  # sorted by rows
+
+        fname = f'vfsparse.inp.{self.expnr}'
+        with open(fname, 'w') as fID:
+            for row in data:
+                fID.write(f'{int(row[0])} {int(row[1])} {row[2]:.6f}\n')  # write to 6 decimal places
+
+    def write_svf(self, svf):
+        fname = f'svf.inp.{self.expnr}'
+        with open(fname, 'w') as fileID:
+            fileID.write('# sky view factors\n')
+
+        with open(fname, 'a') as fileID:
+            np.savetxt(fileID, svf, fmt='%.4f', delimiter=' ')
+
+    def write_facetarea(self, facetarea):
+        fname = f'facetarea.inp.{self.expnr}'
+        with open(fname, 'w') as fileID:
+            fileID.write('# area of facets\n')
+
+        with open(fname, 'a') as fileID:
+            np.savetxt(fileID, facetarea, fmt='%.4f', delimiter=' ')
+
+    def write_netsw(self, Knet):
+        fname = f'netsw.inp.{self.expnr}'
+        with open(fname, 'w') as fileID:
+            fileID.write('# net shortwave on facets [W/m2] (including reflections and diffusive)\n')
+            np.savetext(fileID, Knet.flatten(), fmt='%6.4f')
+
+    def write_timedepsw(self, tSP, Knet):
+        fname = f'timedepsw.inp.{self.expnr}'
+        with open(fname, 'w') as fileID:
+            fileID.write('# time-dependent net shortwave on facets [W/m2]. First line: times (1 x nt), then netsw (nfcts x nt)\n')
+
+        with open(fname, 'a') as fileID:
+            np.savetxt(fileID, tSP, fmt='%9.2f', delimiter=' ')
+            np.savetxt(fileID, Knet, fmt='%9.4f', delimiter=' ')
+
+    def write_Tfacinit(self, Tfacinit):
+        fname = f'Tfacinit.inp.{self.expnr}'
+        with open(fname, 'w') as fileID:
+            fileID.write('# Initial facet tempereatures in radiative equilibrium\n')
+
+        with open(fname, 'a') as fileID:
+            np.savetxt(fileID, Tfacinit, fmt='%.4f', delimiter=' ')
+
+    def write_Tfacinit_layers(self, Tfacinit_layers):
+        fname = f'Tfacinit_layers.inp.{self.expnr}'
+        with open(fname, 'w') as fileID:
+            fileID.write('# Initial facet tempereatures in radiative equilibrium\n')
+
+        with open(fname, 'a') as fileID:
+            np.savetxt(fileID, Tfacinit_layers, fmt='%.4f', delimiter=' ')
+
+    def write_trees(self):
+        fname = f'trees.inp.{self.expnr}'
+        with open(fname, 'w') as trees:
+            trees.write('# Trees data\n')
+            trees.write('# tree_n\t il\t   iu\t   jl\t   ju\t   kl\t   ku\t\n')
+            for row in self.trees:
+                trees.write(f'{int(row[0]):4d}\t{int(row[1]):4d}\t{int(row[2]):4d}\t{int(row[3]):4d}\t{int(row[4]):4d}\t{int(row[5]):4d}\t\n')
+
+    def generate_trees_from_namoptions(self):
+        if not self.ltreesfile:  # self.lcanyons
+            tree_dz = self.tree_dz
+            tree_dx = self.tree_dx
+            tree_dy = self.tree_dy
+            tree_h = self.tree_h
+            tree_w = self.tree_w
+            tree_b = self.tree_b
+            nrows = self.nrows
+            jtot = self.jtot
+            """
+            imax = self.imax
+            tot = self.jtot
+            blockwidth = self.blockwidth
+            canyonwidth = self.canyonwidth
+            nrows =  imax / (blockwidth + canyonwidth)  # default is /32
+            if np.ceil(nrows) != np.floor(nrows):
+                l = np.arange(0, 0.5 * imax + 1)
+                ind = (np.remainder(0.5 * imax, 1) == 0)
+                err = np.vstack([l[ind], (0.5 * imax) / l[ind]])
+                print(')
+                print('Block system does not fit grid')
+                print(f'sum widths to: {err[0, :]}')
+                print(f'Current width: {blockwidth + canyonwidth}')
+                raise Exception("Incorrect block system")
+            if (canyonwidth / (2 * (tree_w + tree_dx))) < 1:
+                raise Exception("Trees and spacing won't fit in canyons 2*(tree_dx+tree_w)>canyonwidth")
+            elif not self.lcanyons:
+                raise Exception("Generate trees is currently implemented specificly for canyons only")
+            if (tree_b == 0 or tree_dy == 0):
+                ntrees = 2 * nrows
+                trees = np.zeros((ntrees, 6))
+                trees[0:nrows, 0] = np.arange(0.5 * canyonwidth + blockwidth + tree_dx + 1, imax - 0.5 * canyonwidth + tree_dx + 1 + (canyonwidth + blockwidth), canyonwidth + blockwidth)
+                trees[0:nrows, 1] = trees[0:nrows, 0] + tree_w - 1
+                trees[nrows:, 0] = np.arange(0.5 * canyonwidth - tree_w - tree_dx + 1, imax - 0.5 * canyonwidth - blockwidth - tree_w - tree_dx + 1 + (canyonwidth + blockwidth), canyonwidth + blockwidth)
+                trees[nrows:, 1] = trees[nrows:, 0] + tree_w - 1
+                trees[:, 2] = 1
+                trees[:, 3] = jtot
+                trees[:, 4] = tree_dz + 1
+                trees[:, 5] = tree_dz + tree_h - 1
+            else:
+            """
+            ncols = int(np.floor(jtot / (tree_b + tree_dy)))
+            ntrees = 2 * nrows * ncols
+            tree_i = np.arange(ntrees)
+            tree_i = tree_i.reshape((ncols, 2 * nrows), order='F')
+            extra_dy = 0.5 * (jtot - ncols * (tree_b + tree_dy))
+            trees = np.zeros((ntrees, 6))
+
+            vec1 = np.arange(0.5 * canyonwidth + blockwidth + tree_dx + 1, imax - 0.5 * canyonwidth + tree_dx + 1 + (canyonwidth + blockwidth), canyonwidth + blockwidth)
+            xpos1 = np.tile(vec1.reshape(-1, 1), (1, ncols)).T.flatten(order='F')
+            idx1 = tree_i[:, :nrows].flatten(order='F')
+            trees[idx1, 0] = xpos1
+            trees[idx1, 1] = trees[idx1, 0] + tree_w - 1
+
+            vec2 = np.arange(0.5 * canyonwidth - tree_w - tree_dx + 1, imax - 0.5 * canyonwidth - blockwidth - tree_w - tree_dx + 1 + (canyonwidth + blockwidth), canyonwidth + blockwidth)
+            xpos2 = np.tile(vec2.reshape(-1, 1), (1, ncols)).T.flatten(order='F')
+            idx2 = tree_i[:, nrows:].flatten(order='F')
+            trees[idx2, 0] = xpos2
+            trees[idx2, 1] = trees[idx2, 0] + tree_w - 1
+
+            vec3 = np.arange(np.floor(extra_dy + 0.5 * tree_dy) + 1, jtot - np.ceil(extra_dy + 0.5 * tree_dy) - tree_b + 1 + (tree_b + tree_dy), tree_b + tree_dy)
+            y_coords = np.tile(vec3.reshape(-1, 1), (1, 2 * nrows)).flatten(order='F')
+            idx3 = tree_i[:ncols, :].flatten(order='F')
+            trees[idx3, 2] = y_coords
+            trees[idx3, 3] = trees[idx3, 2] + tree_b - 1
+
+            trees[:, 4] = tree_dz + 1
+            trees[:, 5] = tree_dz + tree_h - 1
+        elif self.ltreesfile:
+            trees = np.loadtxt(self.treesfile, skiprows=2)
+            ntrees = trees.shape[0]
+        # else:
+            # raise Exception("trees will not be generated, use canyons or tree.inp file.")
+
+        self.addvar(self, 'ntrees', ntrees)
+        self.ntrees = ntrees
+        self.addvar(self, 'trees', trees)
+
+# NEXT >> function plot_trees(obj):
