@@ -262,16 +262,16 @@ class Preprocessing:
             self.addvar('sv20', 0)        # second scalar variable initial/ background conc.
             self.addvar('sv30', 0)        # third scalar variable initial/ background conc.
             self.addvar('sv40', 0)        # fourth scalar variable initial/ background conc.
-        	self.addvar('sv50', 0)        # fifth scalar variable initial/ background conc.
-        	self.addvar('lscasrc', 0)     # switch for scalar point source
-        	self.addvar('lscasrcl', 0)    # switch for scalar line source
-        	self.addvar('lscasrcr', 0)    # switch for network of scalar point source
-        	self.addvar('xS', -1)         # x-position of scalar point source [m]
-        	self.addvar('yS', -1)         # y-position of scalar point source [m]
-        	self.addvar('zS', -1)         # z-position of scalar point source [m]
+            self.addvar('sv50', 0)        # fifth scalar variable initial/ background conc.
+            self.addvar('lscasrc', 0)     # switch for scalar point source
+            self.addvar('lscasrcl', 0)    # switch for scalar line source
+            self.addvar('lscasrcr', 0)    # switch for network of scalar point source
+            self.addvar('xS', -1)         # x-position of scalar point source [m]
+            self.addvar('yS', -1)         # y-position of scalar point source [m]
+            self.addvar('zS', -1)         # z-position of scalar point source [m]
             self.addvar('SSp', -1)        # source strength of scalar point source
-        	self.addvar('sigSp', -1)      # standard deviation/spread of scalar point source [g] - per unit time??
-        	self.addvar('nscasrc', 0)     # number of scalar point sources
+            self.addvar('sigSp', -1)      # standard deviation/spread of scalar point source [g] - per unit time??
+            self.addvar('nscasrc', 0)     # number of scalar point sources
             self.addvar('xSb', -1)        # x-position of scalar line source begining point [m]
             self.addvar('ySb', -1)        # y-position of scalar line source begining point [m]
             self.addvar('zSb', -1)        # z-position of scalar line source begining point [m]
@@ -279,7 +279,7 @@ class Preprocessing:
             self.addvar('ySe', -1)        # y-position of scalar line source ending point [m]
             self.addvar('zSe', -1)        # z-position of scalar line source ending point [m]
             self.addvar('SSl', -1)        # source strength of scalar line source [g/m] - per unit time??
-        	self.addvar('sigSl', -1)      # standard deviation/spread of scalar line source
+            self.addvar('sigSl', -1)      # standard deviation/spread of scalar line source
             self.addvar('nscasrcl', 0)    # number of scalar point sources
 
         self.addvar('lapse', 0)  # lapse rate [K/s]
