@@ -1166,4 +1166,169 @@ class Preprocessing:
         self.ntrees = ntrees
         self.addvar(self, 'trees', trees)
 
-# NEXT >> function plot_trees(obj):
+    def plot_trees(self):
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.set_title('Blocks')
+        ax.view_init(elev=30, azim=-37.5)
+        """
+        if self.lbottom:
+            clr = [0.85, 0.85, 0.85]
+            vertices = [[self.xh[0],  self.yh[0],  self.zh[0]],
+                        [self.xh[0],  self.yh[-1], self.zh[0]],
+                        [self.xh[-1], self.yh[-1], self.zh[0]],
+                        [self.xh[-1], self.yh[0],  self.zh[0]]]
+            ax.add_collection3d(Poly3DCollection([vertices], facecolors=clr, alpha=0.9))
+
+        if not self.lflat and not self.lfloors:
+            clr = [0.85, 0.85, 0.85]
+            for i in range(self.nblockstotal):
+                il = int(self.blocks[i, 0])
+                iu = int(self.blocks[i, 1])
+                jl = int(self.blocks[i, 2])
+                ju = int(self.blocks[i, 3])
+                kl = int(self.blocks[i, 4])
+                ku = int(self.blocks[i, 5])
+
+                if i < self.nblocks:
+                    vertices = [[self.xh[il],   self.yh[jl],   self.zh[ku+1]],
+                                [self.xh[iu+1], self.yh[jl],   self.zh[ku+1]],
+                                [self.xh[iu+1], self.yh[ju+1], self.zh[ku+1]],
+                                [self.xh[il],   self.yh[ju+1], self.zh[ku+1]]]
+                    ax.add_collection3d(Poly3DCollection([vertices], facecolors=clr, alpha=0.9))
+                    vertices = [[self.xh[il],   self.yh[jl], self.zh[kl]],
+                                [self.xh[il],   self.yh[jl], self.zh[ku+1]],
+                                [self.xh[iu+1], self.yh[jl], self.zh[ku+1]],
+                                [self.xh[iu+1], self.yh[jl], self.zh[kl]]]
+                    ax.add_collection3d(Poly3DCollection([vertices], facecolors=clr, alpha=0.9))
+                    vertices = [[self.xh[il],   self.yh[ju+1], self.zh[kl]],
+                                [self.xh[il],   self.yh[ju+1], self.zh[ku+1]],
+                                [self.xh[iu+1], self.yh[ju+1], self.zh[ku+1]],
+                                [self.xh[iu+1], self.yh[ju+1], self.zh[kl]]]
+                    ax.add_collection3d(Poly3DCollection([vertices], facecolors=clr, alpha=0.9))
+                    vertices = [[self.xh[il], self.yh[ju+1], self.zh[kl]],
+                                [self.xh[il], self.yh[ju+1], self.zh[ku+1]],
+                                [self.xh[il], self.yh[jl],   self.zh[ku+1]],
+                                [self.xh[il], self.yh[jl],   self.zh[kl]]]
+                    ax.add_collection3d(Poly3DCollection([vertices], facecolors=clr, alpha=0.9))
+                    vertices = [[self.xh[iu+1], self.yh[jl],   self.zh[kl]],
+                                [self.xh[iu+1], self.yh[jl],   self.zh[ku+1]],
+                                [self.xh[iu+1], self.yh[ju+1], self.zh[ku+1]],
+                                [self.xh[iu+1], self.yh[ju+1], self.zh[kl]]]
+                    ax.add_collection3d(Poly3DCollection([vertices], facecolors=clr, alpha=0.9))
+                else:
+                    vertices = [[self.xh[il],   self.yh[jl],   self.zh[ku+1]],
+                                [self.xh[iu+1], self.yh[jl],   self.zh[ku+1]],
+                                [self.xh[iu+1], self.yh[ju+1], self.zh[ku+1]],
+                                [self.xh[il],   self.yh[ju+1], self.zh[ku+1]]]
+                    ax.add_collection3d(Poly3DCollection([vertices], facecolors=clr, alpha=0.9))
+                    vertices = [[self.xh[il],   self.yh[jl], 0],
+                                [self.xh[il],   self.yh[jl], self.zh[ku+1]],
+                                [self.xh[iu+1], self.yh[jl], self.zh[ku+1]],
+                                [self.xh[iu+1], self.yh[jl], 0]]
+                    ax.add_collection3d(Poly3DCollection([vertices], facecolors=clr, alpha=0.9))
+                    vertices = [[self.xh[il],   self.yh[ju+1], 0],
+                                [self.xh[il],   self.yh[ju+1], self.zh[ku+1]],
+                                [self.xh[iu+1], self.yh[ju+1], self.zh[ku+1]],
+                                [self.xh[iu+1], self.yh[ju+1], 0]]
+                    ax.add_collection3d(Poly3DCollection([vertices], facecolors=clr, alpha=0.9))
+                    vertices = [[self.xh[il], self.yh[ju+1], 0],
+                                [self.xh[il], self.yh[ju+1], self.zh[ku+1]],
+                                [self.xh[il], self.yh[jl],   self.zh[ku+1]],
+                                [self.xh[il], self.yh[jl],   0]]
+                    ax.add_collection3d(Poly3DCollection([vertices], facecolors=clr, alpha=0.9))
+                    vertices = [[self.xh[iu+1], self.yh[jl],   0],
+                                [self.xh[iu+1], self.yh[jl],   self.zh[ku+1]],
+                                [self.xh[iu+1], self.yh[ju+1], self.zh[ku+1]],
+                                [self.xh[iu+1], self.yh[ju+1], 0]]
+                    ax.add_collection3d(Poly3DCollection([vertices], facecolors=clr, alpha=0.9))
+        """
+        if self.ltrees:
+            clr = [0.20, 0.65, 0.15]
+            for i in range(self.ntrees):
+                il = int(self.trees[i, 0])
+                iu = int(self.trees[i, 1])
+                jl = int(self.trees[i, 2])
+                ju = int(self.trees[i, 3])
+                kl = int(self.trees[i, 4])
+                ku = int(self.trees[i, 5])
+                vertices = [[self.xh[il],   self.yh[jl],   self.zh[ku+1]],
+                            [self.xh[iu+1], self.yh[jl],   self.zh[ku+1]],
+                            [self.xh[iu+1], self.yh[ju+1], self.zh[ku+1]],
+                            [self.xh[il],   self.yh[ju+1], self.zh[ku+1]]]
+                ax.add_collection3d(Poly3DCollection([vertices], facecolors=clr, alpha=0.9))
+                vertices = [[self.xh[il],   self.yh[jl], self.zh[kl]],
+                            [self.xh[il],   self.yh[jl], self.zh[ku+1]],
+                            [self.xh[iu+1], self.yh[jl], self.zh[ku+1]],
+                            [self.xh[iu+1], self.yh[jl], self.zh[kl]]]
+                ax.add_collection3d(Poly3DCollection([vertices], facecolors=clr, alpha=0.9))
+                vertices = [[self.xh[il],   self.yh[ju+1], self.zh[kl]],
+                            [self.xh[il],   self.yh[ju+1], self.zh[ku+1]],
+                            [self.xh[iu+1], self.yh[ju+1], self.zh[ku+1]],
+                            [self.xh[iu+1], self.yh[ju+1], self.zh[kl]]]
+                ax.add_collection3d(Poly3DCollection([vertices], facecolors=clr, alpha=0.9))
+                vertices = [[self.xh[il], self.yh[ju+1], self.zh[kl]],
+                            [self.xh[il], self.yh[ju+1], self.zh[ku+1]],
+                            [self.xh[il], self.yh[jl],   self.zh[ku+1]],
+                            [self.xh[il], self.yh[jl],   self.zh[kl]]]
+                ax.add_collection3d(Poly3DCollection([vertices], facecolors=clr, alpha=0.9))
+                vertices = [[self.xh[iu+1], self.yh[jl],   self.zh[kl]],
+                            [self.xh[iu+1], self.yh[jl],   self.zh[ku+1]],
+                            [self.xh[iu+1], self.yh[ju+1], self.zh[ku+1]],
+                            [self.xh[iu+1], self.yh[ju+1], self.zh[kl]]]
+                ax.add_collection3d(Poly3DCollection([vertices], facecolors=clr, alpha=0.9))
+
+        #ax.set_xlim([0, self.xh[-1]])
+        #ax.set_ylim([0, self.yh[-1]])
+        #ax.set_zlim([0, self.zh[-1]])
+        #ax.set_xlabel('$x(\\mathrm{m})$')
+        #ax.set_ylabel('$y(\\mathrm{m})$')
+        #ax.set_zlabel('$z(\\mathrm{m})$')
+        #ax.set_box_aspect([1, 1, 1])
+        #ax.grid(True)
+
+        plt.show()
+
+    def update_namoptions(self, namoptionsfile, sectionname, varname, value):
+        with open(namoptionsfile, 'r') as f:
+            namoptions_content = f.read()
+
+        pattern = varname + r'\s*=\s*\d+'
+
+        if re.search(r'\b' + varname + r'\b', namoptions_content):
+            new_content = re.sub(pattern, f'{varname} = {value}', namoptions_content)
+        elif sectionname in namoptions_content:
+            replacement = f'{sectionname}\n{varname} = {value}'
+            new_content = namoptions_content.replace(sectionname, replacement, 1)
+        else:
+            namoptions_content = namoptions_content + f'\n{sectionname}'
+            replacement = f'{sectionname}\n{varname} = {value}'
+            new_content = namoptions_content.replace(sectionname, replacement, 1)
+            new_content = new_content + '\n/'
+
+        with open(namoptionsfile, 'w') as f:
+            f.write(new_content)
+
+    @staticmethod
+    def _loadvar(self, filename, svar):
+        """
+        Load netcdf data
+
+        Arg:
+            filename: Name of file (string)
+            svar: Variable name (string)
+        Return:
+            data: Array of float
+        """
+        data = None
+        with nc.Dataset(filename, 'r') as dataset:
+            if svar in dataset.variables:
+                data = dataset.variables[svar][:]
+                found = True
+            else:
+                found = False
+
+        if not found:
+            print(f'variable {svar} not found!')
+
+        return data
