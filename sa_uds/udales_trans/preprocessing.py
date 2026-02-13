@@ -3,8 +3,10 @@ import re
 import math
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from scipy.optimize import fsolve
 import netCDF4 as nc
+
 
 class Preprocessing:
     """Class for pre-processing in uDALES"""
