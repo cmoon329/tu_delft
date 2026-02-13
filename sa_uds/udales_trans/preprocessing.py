@@ -622,7 +622,7 @@ class Preprocessing:
             albedo = self.factypes[typeids == my_typid, 4][0]
             albedos.append(albedo)
 
-    return np.array(albedos)
+        return np.array(albedos)
 
     def plot_profiles(self):
         plt.figure(figsize=(16, 4))
