@@ -801,7 +801,7 @@ class Preprocessing:
         gf = self.stretchconst
 
         while True:
-            self.zh[il:] = self.zh[il] + (self.zsize - self.zh[il]) * (1 - np.tanh(gf * (1 - 2 * np.arange(0, ir + 1, 1) / (2 * ir))) / np.tanh(gf)))
+            self.zh[il:] = self.zh[il] + (self.zsize - self.zh[il]) * (1 - np.tanh(gf * (1 - 2 * np.arange(0, ir + 1, 1) / (2 * ir))) / np.tanh(gf))
 
             if (self.zh[il + 1] - self.zh[il]) < self.dzlin:
                 gf -= 0.01  # make sufficiently small steps to avoid an initial bump in dz
@@ -853,7 +853,7 @@ class Preprocessing:
         if sum([(self.luoutflowr or self.lvoutflowr), (self.luvolflowr or self.lvvolflowr), self.lprofforc, self.lcoriol, self.ldp]) > 1:
             raise Exception("More than one forcing type specified")
 
-        self.addvar('ls', np.zeros((len(self.zf), 10))
+        self.addvar('ls', np.zeros((len(self.zf), 10)))
 
         self.ls[:, 0] = self.zf
         self.ls[:, 5] = self.w_s
@@ -976,6 +976,9 @@ class Preprocessing:
                 print('Ensure scalar source locations do not intersect any building !! If sure, ignore this message.')  # needs to be removed later
 
     def plot_scalarsources(self):
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+
         for ii in range(1, self.nsv + 1):
             if self.lscasrc:
                 fname = f'scalarsourcep.inp.{ii}.{self.expnr}'
@@ -1109,11 +1112,10 @@ class Preprocessing:
             tree_b = self.tree_b
             nrows = self.nrows
             jtot = self.jtot
-            """
             imax = self.imax
-            tot = self.jtot
             blockwidth = self.blockwidth
             canyonwidth = self.canyonwidth
+            """
             nrows =  imax / (blockwidth + canyonwidth)  # default is /32
             if np.ceil(nrows) != np.floor(nrows):
                 l = np.arange(0, 0.5 * imax + 1)
@@ -1344,3 +1346,4 @@ class Preprocessing:
             print(f'variable {svar} not found!')
 
         return data
+
