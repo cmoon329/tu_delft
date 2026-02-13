@@ -970,7 +970,7 @@ class Preprocessing:
                         scasrcp.write(f"{row[0]:12.6f}\t {row[1]:12.6f}\t {row[2]:12.6f}\t {row[3]:12.6f}\t {row[4]:12.6f}\t\n")
             if self.lscasrcl:
                 fname = f'scalarsourcel.inp.{ii}.{self.expnr}'
-                with open(fname, 'w') as self.scasrcl:
+                with open(fname, 'w') as scasrcl:
                     scasrcl.write(f"{row[0]:12.6f}\t {row[1]:12.6f}\t {row[2]:12.6f}\t {row[3]:12.6f}\t {row[4]:12.6f}\t {row[5]:12.6f}\t {row[6]:12.6f}\t {row[7]:12.6f}\t\n")
             if self.lscasrc or self.lscasrcl:
                 print('Ensure scalar source locations do not intersect any building !! If sure, ignore this message.')  # needs to be removed later
