@@ -28,9 +28,10 @@ class Preprocessing:
         
         self._cpath = os.getcwd()
     
-        if expnr is None and simulation_path is None:
+        if expnr is None:
             print(f"expnr input not fountd. Exiting...")
-        elif expnr is not None and simulation_path is not None:
+            return 
+        elif simulation_path is not None:
             dapath = os.path.join(simulation_path, str(expnr))
         else:
             dapath = str(expnr)
@@ -69,6 +70,7 @@ class Preprocessing:
                             setattr(self, lhs, lhs_value)
         except: 
             print(f"{filename} not found. Exiting...")
+            return
     
         os.chdir(self._cpath)
 
@@ -547,7 +549,7 @@ class Preprocessing:
         self.addvar('factypes', np.array(factypes))
 
     def write_facets(self, types, normals):
-        fname = f'facet.inp.{self.expnr}'
+        fname = f'facets.inp.{self.expnr}'
 
         with open(fname, 'w') as fileID:
             fileID.write('# type, normal\n')
@@ -611,6 +613,16 @@ class Preprocessing:
             for i in range(nfactypes):
                 row_data = self.factypes[i, :]
                 fileID.write(valstring.format(*row_data) + '\n')
+    
+    def generate_albedos(self, facet_types):
+        albedos = []
+        typeids = self.factypes[:, 0]
+        for i in range(self.nfcts):
+            my_typid = facet_types[i] 
+            albedo = self.factypes[typeids == my_typid, 4][0]
+            albedos.append(albedo)
+
+    return np.array(albedos)
 
     def plot_profiles(self):
         plt.figure(figsize=(16, 4))
