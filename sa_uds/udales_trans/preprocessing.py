@@ -31,7 +31,7 @@ class Preprocessing:
         if expnr is None and simulation_path is None:
             print(f"expnr input not fountd. Exiting...")
         elif expnr is not None and simulation_path is not None:
-            dapath = "".join(simulation_path, str(expnr))
+            dapath = os.path.join(simulation_path, str(expnr))
         else:
             dapath = str(expnr)
     
@@ -51,8 +51,8 @@ class Preprocessing:
                         if match:
                             toks = match.groups()
              
-                            lhs = re.sub(WHITE, VOID, toks.group(1))
-                            rhs = re.sub(WHITE, VOID, toks.group(2))
+                            lhs = re.sub(WHITE, VOID, toks[0])
+                            rhs = re.sub(WHITE, VOID, toks[1])
     
                             if rhs == '.false.':
                                 lhs_value = 0
@@ -124,42 +124,42 @@ class Preprocessing:
         Input:
             newpath: new cpath
         """
-        self.addvar(self, 'ltrees', 0)      # switch for trees
-        self.addvar(self, 'ltreesfile', 0)  # switch for using blocks from a file
+        self.addvar('ltrees', 0)      # switch for trees
+        self.addvar('ltreesfile', 0)  # switch for using blocks from a file
 
         if self.ltrees and not self.ltreesfile:
             #raise Exception("Trees not currently implemented")
             #  These only work with canyons
-            self.addvar(self, 'tree_dz', 0)  # height above ground
-            self.addvar(self, 'tree_dx', 0)  # distance from building
-            self.addvar(self, 'tree_dy', 0)  # spacing between trees
-            self.addvar(self, 'tree_h', 0)   # tree height (z)
-            self.addvar(self, 'tree_w', 0)   # tree width (x)
-            self.addvar(self, 'tree_b', 0)   # tree breadth (y)
-            self.addvar(self, 'nrows', 0)    # number of tree rows
+            self.addvar('tree_dz', 0)  # height above ground
+            self.addvar('tree_dx', 0)  # distance from building
+            self.addvar('tree_dy', 0)  # spacing between trees
+            self.addvar('tree_h', 0)   # tree height (z)
+            self.addvar('tree_w', 0)   # tree width (x)
+            self.addvar('tree_b', 0)   # tree breadth (y)
+            self.addvar('nrows', 0)    # number of tree rows
 
-            #self.addvar(self, 'nt1', 0)
-            #self.addvar(self, 'md', 0)
-            #self.addvar(self, 'ww', 0)
-            #self.addvar(self, 'lw', 0)
-            #self.addvar(self, 'nt2', 0)
+            #self.addvar('nt1', 0)
+            #self.addvar('md', 0)
+            #self.addvar('ww', 0)
+            #self.addvar('lw', 0)
+            #self.addvar('nt2', 0)
 
         # Trees from file
         if self.ltrees and self.ltreesfile:
-            self.addvar(self, 'treesfile', '')  # name of blocks file
+            self.addvar('treesfile', '')  # name of blocks file
 
-        self.addvar(self, 'lpurif', 0)  # switch for purifiers (not implemented)
+        self.addvar('lpurif', 0)  # switch for purifiers (not implemented)
         if self.lpurif:
             raise Exception("Purifiers not currently implemented")
             #if self.lcanyons:
-            #    self.addvar(self, 'purif_dz', 1)   # purifier starting point from bottom
-            #    self.addvar(self, 'purif_dx', 3)   # distance from block
-            #    self.addvar(self, 'purif_h', 3)    # purifier height
-            #    self.addvar(self, 'purif_w', 0)    # purifier width
-            #    self.addvar(self, 'purif_dy', 1)   # depth of purifier (in y)
-            #    self.addvar(self, 'purif_sp', 31)  # spacing between purifiers
-            #    self.addvar(self, 'purif_i', 1)    # case for purifier (1 = +ve x, 2 = -ve x, 3 = +ve y etc.)
-            #    self.addvar(self, 'npurif', (self.jtot / (self.npurif_dy + self.purif_sp)))
+            #    self.addvar('purif_dz', 1)   # purifier starting point from bottom
+            #    self.addvar('purif_dx', 3)   # distance from block
+            #    self.addvar('purif_h', 3)    # purifier height
+            #    self.addvar('purif_w', 0)    # purifier width
+            #    self.addvar('purif_dy', 1)   # depth of purifier (in y)
+            #    self.addvar('purif_sp', 31)  # spacing between purifiers
+            #    self.addvar('purif_i', 1)    # case for purifier (1 = +ve x, 2 = -ve x, 3 = +ve y etc.)
+            #    self.addvar('npurif', (self.jtot / (self.npurif_dy + self.purif_sp)))
 
             #    if math.ceil(self.npurif) != math.floor(self.npurif):
             #        lp = np.arange(0, (self.tot/2 + 1))
@@ -172,193 +172,193 @@ class Preprocessing:
             #else:
             #    raise Exception("Must use lcanyons configuration to use purifiers")
 
-        self.addvar(self, 'luoutflowr', 0)  # switch that determines whether u-velocity is corrected to get a fixed outflow rate
-        self.addvar(self, 'lvoutflowr', 0)  # switch that determines whether v-velocity is corrected to get a fixed outflow rate.
-        self.addvar(self, 'luvolflowr', 0)  # switch that determines whether u-velocity is corrected to get a fixed volume flow rate.
-        self.addvar(self, 'lvvolflowr', 0)  # switch that determines whether v-velocity is corrected to get a fixed volume flow rate.
+        self.addvar('luoutflowr', 0)  # switch that determines whether u-velocity is corrected to get a fixed outflow rate
+        self.addvar('lvoutflowr', 0)  # switch that determines whether v-velocity is corrected to get a fixed outflow rate.
+        self.addvar('luvolflowr', 0)  # switch that determines whether u-velocity is corrected to get a fixed volume flow rate.
+        self.addvar('lvvolflowr', 0)  # switch that determines whether v-velocity is corrected to get a fixed volume flow rate.
 
         # &DOMAIN
-        self.addvar(self, 'itot', 64)  # number of cells in x-direction
-        self.addvar(self, 'xlen', 64)  # domain size in x-direction
-        self.addvar(self, 'jtot', 64)  # number of cells in y-direction
-        self.addvar(self, 'ylen', 64)  # domain size in y-direction
-        self.addvar(self, 'ktot', 96)  # number of cells in z-direction
+        self.addvar('itot', 64)  # number of cells in x-direction
+        self.addvar('xlen', 64)  # domain size in x-direction
+        self.addvar('jtot', 64)  # number of cells in y-direction
+        self.addvar('ylen', 64)  # domain size in y-direction
+        self.addvar('ktot', 96)  # number of cells in z-direction
 
-        self.addvar(self, 'dx', self.xlen / self.itot)
-        self.addvar(self, 'dy', self.ylen / self.jtot)
+        self.addvar('dx', self.xlen / self.itot)
+        self.addvar('dy', self.ylen / self.jtot)
 
         # BCs
-        self.addvar(self, 'BCxm', 1)
-        self.addvar(self, 'BCym', 1)
+        self.addvar('BCxm', 1)
+        self.addvar('BCym', 1)
 
         # &ENERGYBALANCE
-        self.addvar(self, 'lEB', 0)
-        self.addvar(self, 'lfacTlyrs', 0)
+        self.addvar('lEB', 0)
+        self.addvar('lfacTlyrs', 0)
 
         # &WALLS
-        self.addvar(self, 'iwallmom', 3)
-        self.addvar(self, 'iwalltemp', 1)
-        self.addvar(self, 'lbottom', 0)
-        self.addvar(self, 'lwritefac', 0)
+        self.addvar('iwallmom', 3)
+        self.addvar('iwalltemp', 1)
+        self.addvar('lbottom', 0)
+        self.addvar('lwritefac', 0)
 
         # &PHYSICS
-        self.addvar(self, 'ltempeq', 0)
-        self.addvar(self, 'lmoist', 0)
-        self.addvar(self, 'lchem' , 0)     # switch for chemistry (not implemented)
-        self.addvar(self, 'lprofforc', 0)  # switch for 1D geostrophic forcing
-        self.addvar(self, 'lcoriol', 0)    # switch for coriolis forcing
-        self.addvar(self, 'idriver', 0)    # case for driver simulations | 1 - writes driver files | 2 - reads driver files
+        self.addvar('ltempeq', 0)
+        self.addvar('lmoist', 0)
+        self.addvar('lchem' , 0)     # switch for chemistry (not implemented)
+        self.addvar('lprofforc', 0)  # switch for 1D geostrophic forcing
+        self.addvar('lcoriol', 0)    # switch for coriolis forcing
+        self.addvar('idriver', 0)    # case for driver simulations | 1 - writes driver files | 2 - reads driver files
 
         if ((not self.luoutflowr) and (not self.lvoutflowr) and (not self.luvolflowr) and (not self.lvvolflowr)
             and (not self.lprofforc) and (not self.lcoriol) and (self.idriver != 2)):
-                self.addvar(self, 'ldp', 1)
+                self.addvar('ldp', 1)
                 print('No forcing switch config. setup and not a driven simulation so initial velocities and/or pressure gradients applied.')
         else:
-            self.addvar(self, 'ldp', 0)
+            self.addvar('ldp', 0)
 
         if (self.ltempeq == 0) or (self.iwalltemp == 1 and self.iwallmom == 2):
             self.iwallmom = 3
 
         # &INPS
-        self.addvar(self, 'zsize', 96)          # domain size in z-direction
-        self.addvar(self, 'lzstretch', 0)       # switch for stretching z grid
-        self.addvar(self, 'stl_file', '')
-        self.addvar(self, 'gen_geom', True)     # generate the geometry from scratch
-        self.addvar(self, 'geom_path', '')      # if not generating the geometry, the path to the geometry files
-        self.addvar(self, 'diag_neighbs', True)
-        self.addvar(self, 'stl_ground', True)   # Does STL include facets at ground
+        self.addvar('zsize', 96)          # domain size in z-direction
+        self.addvar('lzstretch', 0)       # switch for stretching z grid
+        self.addvar('stl_file', '')
+        self.addvar('gen_geom', True)     # generate the geometry from scratch
+        self.addvar('geom_path', '')      # if not generating the geometry, the path to the geometry files
+        self.addvar('diag_neighbs', True)
+        self.addvar('stl_ground', True)   # Does STL include facets at ground
 
         if self.lzstretch:
-            self.addvar(self, 'stretchconst', 0.01)
-            self.addvar(self, 'lstretchexp', 0)
-            self.addvar(self, 'lstretchexpcheck', 0)
-            self.addvar(self, 'lstretchtanh', 0)
-            self.addvar(self, 'lstretch2tanh', 0)
-            self.addvar(self, 'hlin', 0)
-            self.addvar(self, 'dzlin', 0)
-            self.addvar(self, 'dz', self.dzlin)
+            self.addvar('stretchconst', 0.01)
+            self.addvar('lstretchexp', 0)
+            self.addvar('lstretchexpcheck', 0)
+            self.addvar('lstretchtanh', 0)
+            self.addvar('lstretch2tanh', 0)
+            self.addvar('hlin', 0)
+            self.addvar('dzlin', 0)
+            self.addvar('dz', self.dzlin)
         else:
-            self.addvar(self, 'dz', self.zsize / self.ktot)
+            self.addvar('dz', self.zsize / self.ktot)
 
         if self.lEB:
-            self.addvar(self, 'maxlen', 10)  # maximum size of facets
-        else
-            self.addvar(self, 'maxlen', np.inf)
+            self.addvar('maxlen', 10)  # maximum size of facets
+        else:
+            self.addvar('maxlen', np.inf)
 
-        self.addvar(self, 'u0', 0)    # initial u-velocity - also applied as geostrophic term where applicable
-        self.addvar(self, 'v0', 0)    # initial v-velocity - also applied as geostrophic term where applicable
-        self.addvar(self, 'tke', 0)
-        self.addvar(self, 'dpdx', 0)   # dp/dx [Pa/m]
-        self.addvar(self, 'dpdy', 0)   # dp/dy [Pa/m]
-        self.addvar(self, 'thl0', 288) # temperature at lowest level
-        self.addvar(self, 'qt0', 0)    # specific humidity
+        self.addvar('u0', 0)    # initial u-velocity - also applied as geostrophic term where applicable
+        self.addvar('v0', 0)    # initial v-velocity - also applied as geostrophic term where applicable
+        self.addvar('tke', 0)
+        self.addvar('dpdx', 0)   # dp/dx [Pa/m]
+        self.addvar('dpdy', 0)   # dp/dy [Pa/m]
+        self.addvar('thl0', 288) # temperature at lowest level
+        self.addvar('qt0', 0)    # specific humidity
 
-        self.addvar(self, 'nsv', 0)    # number of scalar variables (not implemented)
+        self.addvar('nsv', 0)    # number of scalar variables (not implemented)
 
         if self.nsv > 0:
-            self.addvar(self, 'sv10', 0)        # first scalar variable initial/ background conc.
-            self.addvar(self, 'sv20', 0)        # second scalar variable initial/ background conc.
-            self.addvar(self, 'sv30', 0)        # third scalar variable initial/ background conc.
-            self.addvar(self, 'sv40', 0)        # fourth scalar variable initial/ background conc.
-        	self.addvar(self, 'sv50', 0)        # fifth scalar variable initial/ background conc.
-        	self.addvar(self, 'lscasrc', 0)     # switch for scalar point source
-        	self.addvar(self, 'lscasrcl', 0)    # switch for scalar line source
-        	self.addvar(self, 'lscasrcr', 0)    # switch for network of scalar point source
-        	self.addvar(self, 'xS', -1)         # x-position of scalar point source [m]
-        	self.addvar(self, 'yS', -1)         # y-position of scalar point source [m]
-        	self.addvar(self, 'zS', -1)         # z-position of scalar point source [m]
-            self.addvar(self, 'SSp', -1)        # source strength of scalar point source
-        	self.addvar(self, 'sigSp', -1)      # standard deviation/spread of scalar point source [g] - per unit time??
-        	self.addvar(self, 'nscasrc', 0)     # number of scalar point sources
-            self.addvar(self, 'xSb', -1)        # x-position of scalar line source begining point [m]
-            self.addvar(self, 'ySb', -1)        # y-position of scalar line source begining point [m]
-            self.addvar(self, 'zSb', -1)        # z-position of scalar line source begining point [m]
-            self.addvar(self, 'xSe', -1)        # x-position of scalar line source ending point [m]
-            self.addvar(self, 'ySe', -1)        # y-position of scalar line source ending point [m]
-            self.addvar(self, 'zSe', -1)        # z-position of scalar line source ending point [m]
-            self.addvar(self, 'SSl', -1)        # source strength of scalar line source [g/m] - per unit time??
-        	self.addvar(self, 'sigSl', -1)      # standard deviation/spread of scalar line source
-            self.addvar(self, 'nscasrcl', 0)    # number of scalar point sources
+            self.addvar('sv10', 0)        # first scalar variable initial/ background conc.
+            self.addvar('sv20', 0)        # second scalar variable initial/ background conc.
+            self.addvar('sv30', 0)        # third scalar variable initial/ background conc.
+            self.addvar('sv40', 0)        # fourth scalar variable initial/ background conc.
+        	self.addvar('sv50', 0)        # fifth scalar variable initial/ background conc.
+        	self.addvar('lscasrc', 0)     # switch for scalar point source
+        	self.addvar('lscasrcl', 0)    # switch for scalar line source
+        	self.addvar('lscasrcr', 0)    # switch for network of scalar point source
+        	self.addvar('xS', -1)         # x-position of scalar point source [m]
+        	self.addvar('yS', -1)         # y-position of scalar point source [m]
+        	self.addvar('zS', -1)         # z-position of scalar point source [m]
+            self.addvar('SSp', -1)        # source strength of scalar point source
+        	self.addvar('sigSp', -1)      # standard deviation/spread of scalar point source [g] - per unit time??
+        	self.addvar('nscasrc', 0)     # number of scalar point sources
+            self.addvar('xSb', -1)        # x-position of scalar line source begining point [m]
+            self.addvar('ySb', -1)        # y-position of scalar line source begining point [m]
+            self.addvar('zSb', -1)        # z-position of scalar line source begining point [m]
+            self.addvar('xSe', -1)        # x-position of scalar line source ending point [m]
+            self.addvar('ySe', -1)        # y-position of scalar line source ending point [m]
+            self.addvar('zSe', -1)        # z-position of scalar line source ending point [m]
+            self.addvar('SSl', -1)        # source strength of scalar line source [g/m] - per unit time??
+        	self.addvar('sigSl', -1)      # standard deviation/spread of scalar line source
+            self.addvar('nscasrcl', 0)    # number of scalar point sources
 
-        self.addvar(self, 'lapse', 0)  # lapse rate [K/s]
-        self.addvar(self, 'w_s', 0)    # subsidence [*units?*]
-        self.addvar(self, 'R', 0)      # radiative forcing [*units?*]
+        self.addvar('lapse', 0)  # lapse rate [K/s]
+        self.addvar('w_s', 0)    # subsidence [*units?*]
+        self.addvar('R', 0)      # radiative forcing [*units?*]
 
-        self.addvar(self, 'libm', 1)
+        self.addvar('libm', 1)
 
-        self.addvar(self, 'isolid_bound', 1)
+        self.addvar('isolid_bound', 1)
         # Option for solid/fluid detection and boundary points calculation;
         # 1: inmypoly_fortran (Fortran), 2: inmypoly (MATLAB) (useful for debugging),
         # 3: inpolyhedron (MATLAB): https://www.mathworks.com/matlabcentral/fileexchange/37856-inpolyhedron-are-points-inside-a-triangulated-volume
 
-        self.addvar(self, 'ifacsec', 1)
+        self.addvar('ifacsec', 1)
         # Option for facet section calculation (matchFacetsToCells)
         # 1: Fortran, 2: MATLAB (useful for debugging)
 
-        self.addvar(self, 'read_types', 0)
+        self.addvar('read_types', 0)
         if self.read_types:
-            self.addvar(self, 'types_path', 0)
+            self.addvar('types_path', 0)
 
-        if obj.lEB:
-            self.addvar(self, 'xazimuth', 90)  # azimuth of x-direction wrt N. Default: x = East
-                                               # north -> xazimuth = 0
-                                               # east  -> xazimuth = 90
-                                               # south -> xazimuth = 180
-                                               # west  -> xazimuth = 270
-            self.addvar(self, 'ltimedepsw', 0)
-            self.addvar(self, 'ishortwave', 1)
+        if self.lEB:
+            self.addvar('xazimuth', 90)  # azimuth of x-direction wrt N. Default: x = East
+                                         # north -> xazimuth = 0
+                                         # east  -> xazimuth = 90
+                                         # south -> xazimuth = 180
+                                         # west  -> xazimuth = 270
+            self.addvar('ltimedepsw', 0)
+            self.addvar('ishortwave', 1)
             # Option for direct shortwave radiation calculation
             # 1: Fortran, 2: MATLAB (useful for debugging)
-            self.addvar(self, 'isolar', 1)
+            self.addvar('isolar', 1)
             # 1: custom (uDALES v1), 2: from lat/long, 3: from weatherfile
-            self.addvar(self, 'runtime', 0)
-            self.addvar(self, 'dtEB', 10.0)       # energy balance timestep
-            self.addvar(self, 'dtSP', self.dtEB)  # solar position time step
+            self.addvar('runtime', 0)
+            self.addvar('dtEB', 10.0)       # energy balance timestep
+            self.addvar('dtSP', self.dtEB)  # solar position time step
 
             if self.isolar == 1:
-                self.addvar(self, 'solarazimuth', 135)    # solar azimuth angle
-                self.addvar(self, 'solarzenith', 28.4066) # zenith angle
-                self.addvar(self, 'I', 800)               # Direct normal irradiance [W/m2]
-                self.addvar(self, 'Dsky', 418.8041)       # Diffuse incoming radiation [W/m2]
+                self.addvar('solarazimuth', 135)    # solar azimuth angle
+                self.addvar('solarzenith', 28.4066) # zenith angle
+                self.addvar('I', 800)               # Direct normal irradiance [W/m2]
+                self.addvar('Dsky', 418.8041)       # Diffuse incoming radiation [W/m2]
             elif self.isolar == 2:
-                self.addvar(self, 'longitude', -0.13) # longitude
-                self.addvar(self, 'latitude', 51.5)   # latitude
-                self.addvar(self, 'timezone', 0)      # timezone
-                self.addvar(self, 'elevation', 0)     # timezone
-                self.addvar(self, 'hour', 6)
-                self.addvar(self, 'minute', 0)
-                self.addvar(self, 'second', 0)
-                self.addvar(self, 'year', 2011)
-                self.addvar(self, 'month', 9)
-                self.addvar(self, 'day', 30)
+                self.addvar('longitude', -0.13) # longitude
+                self.addvar('latitude', 51.5)   # latitude
+                self.addvar('timezone', 0)      # timezone
+                self.addvar('elevation', 0)     # timezone
+                self.addvar('hour', 6)
+                self.addvar('minute', 0)
+                self.addvar('second', 0)
+                self.addvar('year', 2011)
+                self.addvar('month', 9)
+                self.addvar('day', 30)
             elif self.isolar == 3:
-                self.addvar(self, 'weatherfname', '')
-                self.addvar(self, 'hour', 0)
-                self.addvar(self, 'minute', 0)
-                self.addvar(self, 'second', 0)
-                self.addvar(self, 'year', 0)
-                self.addvar(self, 'month', 6)
-                self.addvar(self, 'day', 1)
+                self.addvar('weatherfname', '')
+                self.addvar('hour', 0)
+                self.addvar('minute', 0)
+                self.addvar('second', 0)
+                self.addvar('year', 0)
+                self.addvar('month', 6)
+                self.addvar('day', 1)
 
-            self.addvar(self, 'psc_res', 0.1)      # Poly scan conversion resolution for solar radiation calculation (lower number = better)
-            self.addvar(self, 'lvfsparse', False)  # view factors given in sparse format
+            self.addvar('psc_res', 0.1)      # Poly scan conversion resolution for solar radiation calculation (lower number = better)
+            self.addvar('lvfsparse', False)  # view factors given in sparse format
 
             # view3d output format. 0: text, 1: binary, 2: sparse
-            self.addvar(self, 'calc_vf', True)
-            self.addvar(self, 'maxD', np.inf)  # maximum distance to check view factors
+            self.addvar('calc_vf', True)
+            self.addvar('maxD', np.inf)  # maximum distance to check view factors
 
             if not self.calc_vf:
-               self.addvar(self, 'vf_path', '')
+               self.addvar('vf_path', '')
 
-            self.addvar(self, 'view3d_out', 0)
+            self.addvar('view3d_out', 0)
             if (self.view3d_out == 2) and (not self.lvfsparse):
                 raise Exception('If sparse view3d output is desired, set lvfsparse=.true. in &ENERGYBALANCE.')
 
-        self.addvar(self, 'facT', 288.0)   # Initial facet temperatures.
-        self.addvar(self, 'nfaclyrs', 3)  # Number of facet layers
-        self.addvar(self, 'nfcts', 0)
-        self.generate_factypes(self)
-        self.addvar(self, 'facT_file', '')
+        self.addvar('facT', 288.0)   # Initial facet temperatures.
+        self.addvar('nfaclyrs', 3)  # Number of facet layers
+        self.addvar('nfcts', 0)
+        self.generate_factypes()
+        self.addvar('facT_file', '')
 
     def generate_factypes(self):
         K = self.nfaclyrs
@@ -403,7 +403,7 @@ class Preprocessing:
                 [l_f] * K + \
                 [k_f] * (K + 1)
         else:
-            f = [id_f, lGR_f, z0_f, z0h_f, al_f, em_f]
+            f = [id_f, lGR_f, z0_f, z0h_f, al_f, em_f] + \
                 [d_f] * K + \
                 [C_f] * K + \
                 [l_f] * K + \
@@ -544,7 +544,7 @@ class Preprocessing:
               [k_GR2] * (K + 1)
         factypes.append(GR2)
 
-        self.addvar(self, 'factypes', factypes)
+        self.addvar('factypes', np.array(factypes))
 
     def write_facets(self, types, normals):
         fname = f'facet.inp.{self.expnr}'
@@ -637,10 +637,10 @@ class Preprocessing:
         plt.show()
 
     def generate_xygrid(self):
-        self.addvar(self, 'xf', np.arange(0.5 * self.dx, self.xlen, self.dx))
-        self.addvar(self, 'yf', np.arange(0.5 * self.dy, self.ylen, self.dy))
-        self.addvar(self, 'xh', np.arange(0, self.xlen + self.dx, self.dx))
-        self.addvar(self, 'yh', np.arange(0, self.ylen + self.dy, self.dy))
+        self.addvar('xf', np.arange(0.5 * self.dx, self.xlen, self.dx))
+        self.addvar('yf', np.arange(0.5 * self.dy, self.ylen, self.dy))
+        self.addvar('xh', np.arange(0, self.xlen + self.dx, self.dx))
+        self.addvar('yh', np.arange(0, self.ylen + self.dy, self.dy))
 
     def write_xgrid(self):
         fname = f'xgrid.inp.{self.expnr}'
@@ -654,18 +654,18 @@ class Preprocessing:
 
     def generate_zgrid(self):
         if not self.lzstretch:
-            self.addvar(self, 'zf', np.arange(0.5 * self.dz, self.zsize, self.dz))
-            self.addvar(self, 'zh', np.arange(0, self.zsize + self.dz, self.dz))
-            self.addvar(self, 'dzf', (self.zh[1:] - self.zh[:-1]))
+            self.addvar('zf', np.arange(0.5 * self.dz, self.zsize, self.dz))
+            self.addvar('zh', np.arange(0, self.zsize + self.dz, self.dz))
+            self.addvar('dzf', (self.zh[1:] - self.zh[:-1]))
         else:
             if self.lstretchexp:
-                self.stretch_exp(self)
+                self.stretch_exp()
             elif self.lstretchexpcheck:
-                self.stretch_exp_check(self)
+                self.stretch_exp_check()
             elif self.lstretchtanh:
-                self.stretch_tanh(self)
+                self.stretch_tanh()
             elif self.lstretch2tanh:
-                self.stretch_2tanh(self)
+                self.stretch_2tanh()
             else:
                 raise Exception('Invalid stretch')
 
@@ -687,9 +687,9 @@ class Preprocessing:
         il = int(round(self.hlin / self.dzlin))
         ir = self.ktot - il
 
-        self.addvar(self, 'zf', np.zeros(self.ktot))
-        self.addvar(self, 'dzf', np.zeros(self.ktot))
-        self.addvar(self, 'zh', np.zeros(self.ktot + 1))
+        self.addvar('zf', np.zeros(self.ktot))
+        self.addvar('dzf', np.zeros(self.ktot))
+        self.addvar('zh', np.zeros(self.ktot + 1))
 
         self.zf[:il] = np.arange(0.5 * self.dzlin, self.hlin + 0.5 * self.dzlin, self.dzlin)
         self.zh[:il + 1] = np.arange(0, self.hlin + self.dzlin, self.dzlin)
@@ -707,17 +707,17 @@ class Preprocessing:
                     print('Warnning: final grid spacing large - consider reducing domain height')
                 break
 
-        obj.zf = (obj.zh[:-1] + obj.zh[1:]) / 2
-        obj.dzf = obj.zh[1:] - obj.zh[:-1]
+        self.zf = (self.zh[:-1] + self.zh[1:]) / 2
+        self.dzf = self.zh[1:] - self.zh[:-1]
 
     def stretch_exp_check(self):
         il = int(round(self.hlin / self.dzlin))
         ir = self.ktot - il
         z0 = il * self.dzlin  # hlin will be modified as z0
 
-        self.addvar(self, 'zf', np.zeros(self.ktot))
-        self.addvar(self, 'dzf', np.zeros(self.ktot))
-        self.addvar(self, 'zh', np.zeros(self.ktot + 1))
+        self.addvar('zf', np.zeros(self.ktot))
+        self.addvar('dzf', np.zeros(self.ktot))
+        self.addvar('zh', np.zeros(self.ktot + 1))
 
         # Introduce zhat(xi) = (z(xi)-z0) / L where xi = [0, 1] is the
         # computational space variable which is discretised uniformly. Note that
@@ -779,9 +779,9 @@ class Preprocessing:
         il = int(round(self.hlin / self.dzlin))
         ir = self.ktot - il
 
-        self.addvar(self, 'zf', np.zeros(self.ktot))
-        self.addvar(self, 'dzf', np.zeros(self.ktot))
-        self.addvar(self, 'zh', np.zeros(self.ktot + 1))
+        self.addvar('zf', np.zeros(self.ktot))
+        self.addvar('dzf', np.zeros(self.ktot))
+        self.addvar('zh', np.zeros(self.ktot + 1))
 
         self.zf[:il] = np.arange(0.5 * self.dzlin, self.hlin + 0.5 * self.dzlin, self.dzlin)
         self.zh[:il + 1] = np.arange(0, self.hlin + self.dzlin, self.dzlin)
@@ -806,9 +806,9 @@ class Preprocessing:
         il = int(round(self.hlin / self.dzlin))
         ir = self.ktot - il
 
-        self.addvar(self, 'zf', np.zeros(self.ktot))
-        self.addvar(self, 'dzf', np.zeros(self.ktot))
-        self.addvar(self, 'zh', np.zeros(self.ktot + 1))
+        self.addvar('zf', np.zeros(self.ktot))
+        self.addvar('dzf', np.zeros(self.ktot))
+        self.addvar('zh', np.zeros(self.ktot + 1))
 
         self.zf[:il] = np.arange(0.5 * self.dzlin, self.hlin + 0.5 * self.dzlin, self.dzlin)
         self.zh[:il + 1] = np.arange(0, self.hlin + self.dzlin, self.dzlin)
@@ -841,7 +841,7 @@ class Preprocessing:
         if sum([(self.luoutflowr or self.lvoutflowr), (self.luvolflowr or self.lvvolflowr), self.lprofforc, self.lcoriol, self.ldp]) > 1:
             raise Exception("More than one forcing type specified")
 
-        self.addvar(self, 'ls', np.zeros((len(self.zf), 10))
+        self.addvar('ls', np.zeros((len(self.zf), 10))
 
         self.ls[:, 0] = self.zf
         self.ls[:, 5] = self.w_s
@@ -863,7 +863,7 @@ class Preprocessing:
                 lscale.write(f"{row[0]:<20.15f} {row[1]:<12.6f} {row[2]:<12.6f} {row[3]:<12.9f} {row[4]:<12.6f} {row[5]:<15.9f} {row[6]:<12.6f} {row[7]:<12.6f} {row[8]:<12.6f} {row[9]:<17.12f}\n")
 
     def generate_prof(self):
-        self.addvar(self, 'pr', np.zeros((len(self.zf), 6)))
+        self.addvar('pr', np.zeros((len(self.zf), 6)))
         self.pr[:, 0] = self.zf
 
         if self.lapse:
@@ -889,7 +889,7 @@ class Preprocessing:
                 prof.write(f"{row[0]:20.15f} {row[1]:12.6f} {row[2]:12.6f} {row[3]:12.6f} {row[4]:12.6f} {row[5]:12.6f}\n")
 
     def generate_scalar(self):
-        self.addvar(self, 'sc', np.zeros((len(self.zf), self.nsv + 1)))
+        self.addvar('sc', np.zeros((len(self.zf), self.nsv + 1)))
         self.sc[:, 0] = self.zf
 
         if self.nsv > 0:
@@ -923,7 +923,7 @@ class Preprocessing:
             raise Exception("Network of point sources not currently implemented")
 
         if self.lscasrc:
-            self.addvar(self, 'scasrcp', np.zeros((self.nscasrc, 5)))
+            self.addvar('scasrcp', np.zeros((self.nscasrc, 5)))
             if self.nscasrc == 1:
                 self.scasrcp[0, 0] = self.xS
                 self.scasrcp[0, 1] = self.yS
@@ -934,7 +934,7 @@ class Preprocessing:
                 print('Warning!! Manually set appropriate xS, yS, zS, SS and sigS for scalar source points in scalarsourcep.inp.')
 
         if self.lscasrcl:
-            self.addvar(self, 'scasrcl', np.zeros((self.nscasrcl, 8)))
+            self.addvar('scasrcl', np.zeros((self.nscasrcl, 8)))
             if self.nscasrcl == 1:
                 self.scasrcl[0, 0] = self.xSb
                 self.scasrcl[0, 1] = self.ySb
@@ -1014,7 +1014,7 @@ class Preprocessing:
             ds.createDimension('rows', self.nfcts)
             ds.createDimension('columns', self.nfcts)
             varid = ds.createVariable('view factor', 'f4', ('rows', 'columns'))
-            view_factor[:] = vf
+            varid[:] = vf
             
     def write_vfsparse(self, vfsparse):
         # [i,j,s] = find(vfsparse)
@@ -1052,7 +1052,7 @@ class Preprocessing:
         fname = f'netsw.inp.{self.expnr}'
         with open(fname, 'w') as fileID:
             fileID.write('# net shortwave on facets [W/m2] (including reflections and diffusive)\n')
-            np.savetext(fileID, Knet.flatten(), fmt='%6.4f')
+            np.savetxt(fileID, Knet.flatten(), fmt='%6.4f')
 
     def write_timedepsw(self, tSP, Knet):
         fname = f'timedepsw.inp.{self.expnr}'
@@ -1162,9 +1162,9 @@ class Preprocessing:
         # else:
             # raise Exception("trees will not be generated, use canyons or tree.inp file.")
 
-        self.addvar(self, 'ntrees', ntrees)
+        self.addvar('ntrees', ntrees)
         self.ntrees = ntrees
-        self.addvar(self, 'trees', trees)
+        self.addvar('trees', trees)
 
     def plot_trees(self):
         fig = plt.figure()
@@ -1310,7 +1310,7 @@ class Preprocessing:
             f.write(new_content)
 
     @staticmethod
-    def _loadvar(self, filename, svar):
+    def _loadvar(filename, svar):
         """
         Load netcdf data
 
